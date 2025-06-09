@@ -1,0 +1,9 @@
+# XAMPP-spezifisch
+*.log
+*.tmp
+
+# Allgemein
+vendor/
+node_modules/
+.env
+.DS_Store
