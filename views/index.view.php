@@ -27,9 +27,9 @@
             <th>Beschreibung</th>
           </thead>
           <tbody>
-            <?php foreach ($data['staff'] as $staff): ?>
+            <?php foreach ($data['staff->data'] as $staff): ?>
               <tr>
-                <td><?= $staff ?></td>
+                <td><?= $staff->id ?></td>
               </tr>
             <?php endforeach; ?>
 
