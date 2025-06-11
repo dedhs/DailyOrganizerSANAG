@@ -11,7 +11,7 @@
   <h1><?= "Tageseinteilung für " . $data['planWeekday'] . ", " . $data['planDate'] ?></h1>
   <section>
     <div>
-      <p><?php print_r($data['staff']) ?></p>
+      <p><?php var_dump($data['staff']) ?></p>
       <br>
     </div>
   </section>
@@ -21,16 +21,18 @@
       <div class="col-12">
         <table class="table table-striped">
           <thead>
-            <th colspan="2">Aktionen</th>
-            <th>Game</th>
-            <th>Genre</th>
+            <th>Mitarbeiter-ID</th>
+            <th>Dienst</th>
             <th>Beschreibung</th>
           </thead>
           <tbody>
-            <?php foreach ($data['staff->data'] as $staff): ?>
+            <?php foreach ($data['staff'] as $staff): ?>
+
               <tr>
-                <td><?= $staff->id ?></td>
+                <td><?= $staff->mitarbeiter_id ?></td>
+                <td><?= $staff->kuerzel ?></td>
               </tr>
+
             <?php endforeach; ?>
 
           </tbody>

@@ -15,8 +15,8 @@ $login_data = [
   'uid' => $login_headers->uid,
 ];
 
-$staff = get_dienste($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client']);
-
+$day_roster = get_dienste($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client']);
+$staff = json_decode($day_roster)->tagesplan;
 
 $view_data = [
   'title' => 'Tageseinteilung',

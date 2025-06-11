@@ -93,5 +93,22 @@ function get_dienste($date, $token, $uid, $client)
 
   $data = json_decode($response);
 
-  return $data;
+  if (!isset($data->data)) {
+    return json_encode(['error' => 'Keine Daten gefunden']);
+  }
+
+  $tagesplan = [];
+  foreach ($data->data as $data_item) {
+    $arributes = $data_item->attributes ?? null;
+
+    if ($arributes && isset($arributes->mitarbeiter_id) && isset($arributes->kuerzel)) {
+      $tagesplan[] = [
+        'mitarbeiter_id' => $arributes->mitarbeiter_id,
+        'kuerzel' => $arributes->kuerzel
+      ];
+    }
+  }
+
+
+  return json_encode(['tagesplan' => $tagesplan], JSON_PRETTY_PRINT);
 }
