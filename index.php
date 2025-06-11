@@ -3,7 +3,7 @@
 require_once 'app/app.php';
 
 $planWeekday = "Dienstag";
-$planDate = "2025-06-10";
+$planDate = "2025-07-17";
 
 
 $login = api_login();
@@ -15,14 +15,18 @@ $login_data = [
   'uid' => $login_headers->uid,
 ];
 
-$day_roster = get_dienste($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client']);
-$staff = json_decode($day_roster)->tagesplan;
+$staff = get_mitarbeiter($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client']);
+$staff_json = $staff;
+
+$roster = get_dienste($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client']);
+$roster_json = json_decode($roster)->tagesplan;
 
 $view_data = [
   'title' => 'Tageseinteilung',
   'planWeekday' => $planWeekday,
   'planDate' => $planDate,
-  'staff' => $staff,
+  'staff' => $staff_json,
+  'roster' => $roster_json,
 ];
 
 view('index', $view_data);

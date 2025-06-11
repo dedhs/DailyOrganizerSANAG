@@ -73,6 +73,32 @@ function api_login(): ?array
   }
 }
 
+function get_mitarbeiter($date, $token, $uid, $client)
+{
+  $url = API_CONFIG_URLS['base_url_get_mitarbeiter'] . $date . ',' . $date;
+  $ch = curl_init($url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data)); -- no post data handed over to API, can be deleted if working!
+  curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'access-token: ' . $token,
+    'uid: ' . $uid,
+    'client: ' . $client
+  ]);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+
+  $response = curl_exec($ch);
+
+  $data = json_decode($response);
+
+  if (!isset($data->data)) {
+    return json_encode(['error' => 'Keine Daten gefunden']);
+  }
+
+  return $data->data;
+}
+
 
 function get_dienste($date, $token, $uid, $client)
 {

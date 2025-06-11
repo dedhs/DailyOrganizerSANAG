@@ -11,4 +11,5 @@ const API_CONFIG_URLS = [
   // 'url_get_dienste' => 'https://api.planik.ch/api/v1/dienste?filter[team_id]=' . API_CONFIG_DATA['team_id'] . '&filter[zwischen]=' . $date . ',' . $date . '&include=mitarbeiter',
   //'url_get_dienste' => "https://api.planik.ch/api/v1/dienste?filter[mandant_id]=3645&filter[zwischen]=2025-06-10,2025-06-10",
   'base_url_get_dienste' => 'https://api.planik.ch/api/v1/dienste?filter[mandant_id]=' . API_CONFIG_DATA['team_id'] . '&filter[zwischen]=',
+  'base_url_get_mitarbeiter' => 'https://api.planik.ch/api/v1/mitarbeiter?filter[mandant_id]=' . API_CONFIG_DATA['team_id'] . '&filter[angestellt_zwischen]='
 ];
