@@ -9,7 +9,7 @@
 
 <body>
   <h1><?= "Tageseinteilung für " . $data['planWeekday'] . ", " . $data['planDate'] ?></h1>
-  <!---
+
   <section>
     <div>
       <p><?php var_dump($data['roster']) ?></p>
@@ -17,7 +17,7 @@
       <br>
     </div>
   </section>
-  --->
+
   <section>
     </div>
     <div class="row">
@@ -29,11 +29,11 @@
             <th>Beschreibung</th>
           </thead>
           <tbody>
-            <?php foreach ($data['roster'] as $roster): ?>
+            <?php foreach ($data['roster']['tagesplan'] as $roster): ?>
 
               <tr>
-                <td><?= $roster->mitarbeiter_id ?></td>
-                <td><?= $roster->kuerzel ?></td>
+                <td><?= $roster['mitarbeiter_id'] ?></td>
+                <td><?= $roster['kuerzel'] ?></td>
               </tr>
 
             <?php endforeach; ?>
@@ -60,10 +60,10 @@
             <?php foreach ($data['staff'] as $staff): ?>
 
               <tr>
-                <td><?= $staff->id ?></td>
-                <td><?= $staff->attributes->nachname ?></td>
-                <td><?= $staff->attributes->vorname ?></td>
-                <td><?= $staff->attributes->kuerzel ?></td>
+                <td><?= $staff['id'] ?></td>
+                <td><?= $staff['attributes']['nachname'] ?></td>
+                <td><?= $staff['attributes']['vorname'] ?></td>
+                <td><?= $staff['attributes']['kuerzel'] ?></td>
               </tr>
 
             <?php endforeach; ?>

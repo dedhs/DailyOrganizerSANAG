@@ -73,12 +73,12 @@ function api_login(): ?array
   }
 }
 
+
 function get_mitarbeiter($date, $token, $uid, $client)
 {
   $url = API_CONFIG_URLS['base_url_get_mitarbeiter'] . $date . ',' . $date;
   $ch = curl_init($url);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data)); -- no post data handed over to API, can be deleted if working!
   curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Content-Type: application/json',
     'access-token: ' . $token,
@@ -90,14 +90,15 @@ function get_mitarbeiter($date, $token, $uid, $client)
 
   $response = curl_exec($ch);
 
-  $data = json_decode($response);
+  $data = json_decode($response, true);
 
-  if (!isset($data->data)) {
-    return json_encode(['error' => 'Keine Daten gefunden']);
+  if (!isset($data['data'])) {
+    return ['error' => 'Keine Daten gefunden'];
   }
 
-  return $data->data;
+  return $data['data'];
 }
+
 
 
 function get_dienste($date, $token, $uid, $client)
@@ -125,16 +126,15 @@ function get_dienste($date, $token, $uid, $client)
 
   $tagesplan = [];
   foreach ($data->data as $data_item) {
-    $arributes = $data_item->attributes ?? null;
+    $attributes = $data_item->attributes ?? null;
 
-    if ($arributes && isset($arributes->mitarbeiter_id) && isset($arributes->kuerzel)) {
+    if ($attributes && isset($attributes->mitarbeiter_id) && isset($attributes->kuerzel)) {
       $tagesplan[] = [
-        'mitarbeiter_id' => $arributes->mitarbeiter_id,
-        'kuerzel' => $arributes->kuerzel
+        'mitarbeiter_id' => $attributes->mitarbeiter_id,
+        'kuerzel' => $attributes->kuerzel
       ];
     }
   }
 
-
-  return json_encode(['tagesplan' => $tagesplan], JSON_PRETTY_PRINT);
+  return ['tagesplan' => $tagesplan];
 }
