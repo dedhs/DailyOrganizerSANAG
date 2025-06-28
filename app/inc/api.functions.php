@@ -73,7 +73,78 @@ function api_login(): ?array
   }
 }
 
+function get_mitarbeiter($date, $token, $uid, $client, $pdo)
+{
+  $url = API_CONFIG_URLS['base_url_get_mitarbeiter'] . $date . ',' . $date;
 
+  $ch = curl_init($url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'access-token: ' . $token,
+    'uid: ' . $uid,
+    'client: ' . $client
+  ]);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+
+  $response = curl_exec($ch);
+
+  curl_close($ch);
+
+  $data = json_decode($response, true);
+
+  if (!isset($data['data'])) {
+    return ['error' => 'Keine Daten gefunden'];
+  }
+
+  $api_ids = [];
+
+  foreach ($data['data'] as $m) {
+    $id = $m['id'];
+    $lastname = $m['attributes']['nachname'] ?? '';
+    $firstname = $m['attributes']['vorname'] ?? '';
+    $trigram = $m['attributes']['kuerzel'] ?? '';
+
+    $api_ids[] = $id;
+
+    $stmt = $pdo->prepare("
+            INSERT INTO staff (id, lastname, firstname, trigram, status, created, last_modified)
+            VALUES (:id, :lastname, :firstname, :trigram, true, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+              lastname = VALUES(lastname),
+              firstname = VALUES(firstname),
+              trigram = VALUES(trigram),
+              status = true
+        ");
+
+    $stmt->execute([
+      ':id' => $id,
+      ':lastname' => $lastname,
+      ':firstname' => $firstname,
+      ':trigram' => $trigram
+    ]);
+  }
+
+  // Alle Mitarbeiter, die NICHT mehr in der API sind, auf status = false setzen
+  if (count($api_ids) > 0) {
+    $in = implode(',', array_fill(0, count($api_ids), '?'));
+    $stmt = $pdo->prepare("
+            UPDATE staff
+            SET status = false, last_modified = NOW()
+            WHERE id NOT IN ($in)
+        ");
+    $stmt->execute($api_ids);
+  }
+
+  return [
+    'success' => true,
+    'imported' => count($api_ids)
+  ];
+}
+
+
+/*
 function get_mitarbeiter($date, $token, $uid, $client)
 {
   $url = API_CONFIG_URLS['base_url_get_mitarbeiter'] . $date . ',' . $date;
@@ -98,8 +169,7 @@ function get_mitarbeiter($date, $token, $uid, $client)
 
   return $data['data'];
 }
-
-
+*/
 
 function get_dienste($date, $token, $uid, $client)
 {
@@ -138,3 +208,27 @@ function get_dienste($date, $token, $uid, $client)
 
   return ['tagesplan' => $tagesplan];
 }
+
+
+function match_dienste_mitarbeiter($roster, $staff)
+{
+  $staff_list = [];
+  foreach ($staff as $s) {
+    $staff_list[$s['id']] = $s;
+  }
+
+  $result = [];
+  foreach ($roster['tagesplan'] as $r) {
+    $id = $r['mitarbeiter_id'];
+    if (isset($staff_list[$id])) {
+      $s = $staff_list[$id];
+      $result[] = [
+        'mitarbeiter_id' => $id,
+        'name' => $s['attributes']['nachname'] . ', ' . $s['attributes']['vorname'],
+        'dienst' => $r['kuerzel']
+      ];
+    }
+  }
+
+  return $result;
+};

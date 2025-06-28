@@ -15,9 +15,15 @@ $login_data = [
   'uid' => $login_headers->uid,
 ];
 
-$staff = get_mitarbeiter($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client']);
+$pdo = new PDO('mysql:host=localhost;dbname=einteilungstool', 'root', '');
+$result = get_mitarbeiter($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
+print_r($result);
 
-$roster = get_dienste($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client']);
+//$staff = get_mitarbeiter($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client']);
+
+//$roster_raw = get_dienste($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client']);
+
+//$roster = match_dienste_mitarbeiter($roster_raw, $staff);
 
 $view_data = [
   'title' => 'Tageseinteilung',
