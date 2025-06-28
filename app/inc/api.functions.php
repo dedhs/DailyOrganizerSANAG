@@ -144,6 +144,108 @@ function get_mitarbeiter($date, $token, $uid, $client, $pdo)
 }
 
 
+function get_dienste($date, $token, $uid, $client, $pdo)
+{
+  $url = API_CONFIG_URLS['base_url_get_dienste'] . $date . ',' . $date;
+  $ch = curl_init($url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data)); -- no post data handed over to API, can be deleted if working!
+  curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'access-token: ' . $token,
+    'uid: ' . $uid,
+    'client: ' . $client
+  ]);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+
+  $response = curl_exec($ch);
+
+  curl_close($ch);
+
+  $data = json_decode($response);
+
+  if (!isset($data->data)) {
+    return json_encode(['error' => 'Keine Daten gefunden']);
+  }
+
+
+  foreach ($data->data as $data_item) {
+    $attributes = $data_item->attributes ?? null;
+
+    if ($attributes && isset($attributes->mitarbeiter_id) && isset($attributes->kuerzel)) {
+
+      $id = $attributes->mitarbeiter_id;
+      $shift = $attributes->kuerzel;
+    }
+
+    if ($shift === 'P/N') {
+      $shift = null;
+      $on_call_night = 1;
+    } else {
+      $on_call_night = 0;
+    }
+
+
+    $stmt = $pdo->prepare("
+            INSERT INTO roster (date, id, shift, on_call_night)
+            VALUES (:date, :id, :shift, :on_call_night)
+            ON DUPLICATE KEY UPDATE
+              shift = CASE
+                WHEN VALUES(shift) IS NOT NULL THEN VALUES(shift)
+                ELSE shift
+              END,
+              on_call_night = CASE
+                WHEN VALUES(on_call_night) = TRUE THEN TRUE
+                ELSE FALSE
+              END,
+              on_call_day = CASE
+                WHEN VALUES(shift) = 'P/T' THEN TRUE
+                ELSE FALSE
+              END
+        ");
+
+    $stmt->execute([
+      ':date' => $date,
+      ':id' => $id,
+      ':shift' => $shift,
+      ':on_call_night' => $on_call_night
+    ]);
+  }
+  return [
+    'success' => true,
+    //'imported' => count($tagesplan)
+  ];
+}
+
+
+
+function match_dienste_mitarbeiter($roster, $staff)
+{
+  $staff_list = [];
+  foreach ($staff as $s) {
+    $staff_list[$s['id']] = $s;
+  }
+
+  $result = [];
+  foreach ($roster['tagesplan'] as $r) {
+    $id = $r['mitarbeiter_id'];
+    if (isset($staff_list[$id])) {
+      $s = $staff_list[$id];
+      $result[] = [
+        'mitarbeiter_id' => $id,
+        'name' => $s['attributes']['nachname'] . ', ' . $s['attributes']['vorname'],
+        'dienst' => $r['kuerzel']
+      ];
+    }
+  }
+
+  return $result;
+};
+
+
+// alter code
+
 /*
 function get_mitarbeiter($date, $token, $uid, $client)
 {
@@ -169,7 +271,7 @@ function get_mitarbeiter($date, $token, $uid, $client)
 
   return $data['data'];
 }
-*/
+
 
 function get_dienste($date, $token, $uid, $client)
 {
@@ -209,26 +311,4 @@ function get_dienste($date, $token, $uid, $client)
   return ['tagesplan' => $tagesplan];
 }
 
-
-function match_dienste_mitarbeiter($roster, $staff)
-{
-  $staff_list = [];
-  foreach ($staff as $s) {
-    $staff_list[$s['id']] = $s;
-  }
-
-  $result = [];
-  foreach ($roster['tagesplan'] as $r) {
-    $id = $r['mitarbeiter_id'];
-    if (isset($staff_list[$id])) {
-      $s = $staff_list[$id];
-      $result[] = [
-        'mitarbeiter_id' => $id,
-        'name' => $s['attributes']['nachname'] . ', ' . $s['attributes']['vorname'],
-        'dienst' => $r['kuerzel']
-      ];
-    }
-  }
-
-  return $result;
-};
+*/

@@ -3,7 +3,7 @@
 require_once 'app/app.php';
 
 $planWeekday = "Dienstag";
-$planDate = "2025-06-27";
+$planDate = "2025-06-30";
 
 
 $login = api_login();
@@ -16,8 +16,10 @@ $login_data = [
 ];
 
 $pdo = new PDO('mysql:host=localhost;dbname=einteilungstool', 'root', '');
-$result = get_mitarbeiter($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
-print_r($result);
+$staff = get_mitarbeiter($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
+print_r($staff);
+$roster = get_dienste($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
+print_r($roster);
 
 //$staff = get_mitarbeiter($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client']);
 
