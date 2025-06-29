@@ -110,7 +110,7 @@ function get_mitarbeiter($date, $token, $uid, $client, $pdo)
 
     $stmt = $pdo->prepare("
             INSERT INTO staff (id, lastname, firstname, trigram, status, created, last_modified)
-            VALUES (:id, :lastname, :firstname, :trigram, true, NOW(), NOW())
+            VALUES (:id, :lastname, :firstname, :trigram, true, now(), now())
             ON DUPLICATE KEY UPDATE
               lastname = VALUES(lastname),
               firstname = VALUES(firstname),
@@ -131,7 +131,7 @@ function get_mitarbeiter($date, $token, $uid, $client, $pdo)
     $in = implode(',', array_fill(0, count($api_ids), '?'));
     $stmt = $pdo->prepare("
             UPDATE staff
-            SET status = false, last_modified = NOW()
+            SET status = false, last_modified = now()
             WHERE id NOT IN ($in)
         ");
     $stmt->execute($api_ids);
@@ -169,6 +169,10 @@ function get_dienste($date, $token, $uid, $client, $pdo)
     return json_encode(['error' => 'Keine Daten gefunden']);
   }
 
+  // Array with unique ids to check roster for active vs inactive entries
+  $valid_ids = [];
+  $valid_keys_on_call_day = [];
+  $valid_keys_on_call_night = [];
 
   foreach ($data->data as $data_item) {
     $attributes = $data_item->attributes ?? null;
@@ -179,42 +183,106 @@ function get_dienste($date, $token, $uid, $client, $pdo)
       $shift = $attributes->kuerzel;
     }
 
+    $valid_ids[] = $date . '#' . $id;
+
+
     if ($shift === 'P/N') {
       $shift = null;
       $on_call_night = 1;
+      $valid_keys_on_call_night[] = "$date#$id#on_call_night";
     } else {
       $on_call_night = 0;
     }
 
+    if ($shift === 'P/T') {
+      $shift = null;
+      $on_call_day = 1;
+      $valid_keys_on_call_day[] = "$date#$id#on_call_day";
+    } else {
+      $on_call_day = 0;
+    }
 
     $stmt = $pdo->prepare("
-            INSERT INTO roster (date, id, shift, on_call_night)
-            VALUES (:date, :id, :shift, :on_call_night)
+            INSERT INTO roster (date, id, shift, on_call_day, on_call_night, is_active, created, last_modified)
+            VALUES (:date, :id, :shift, :on_call_day, :on_call_night, true, now(), now())
             ON DUPLICATE KEY UPDATE
               shift = CASE
                 WHEN VALUES(shift) IS NOT NULL THEN VALUES(shift)
                 ELSE shift
               END,
-              on_call_night = CASE
-                WHEN VALUES(on_call_night) = TRUE THEN TRUE
-                ELSE FALSE
-              END,
-              on_call_day = CASE
-                WHEN VALUES(shift) = 'P/T' THEN TRUE
-                ELSE FALSE
-              END
+              on_call_night = VALUES(on_call_night) OR on_call_night,
+              on_call_day = VALUES(on_call_day) OR on_call_day,
+              last_modified = now()
         ");
 
     $stmt->execute([
       ':date' => $date,
       ':id' => $id,
       ':shift' => $shift,
+      ':on_call_day' => $on_call_day,
       ':on_call_night' => $on_call_night
     ]);
   }
+
+
+  // Detect inactive entries
+
+  $valid_ids = array_unique($valid_ids);
+
+
+  if (count($valid_ids) > 0) {
+    // Generate Array with placeholders for prepared statement
+    $id_placeholders = implode(',', array_fill(0, count($valid_ids), '?'));
+    $on_call_day_placeholders = implode(',', array_fill(0, count($valid_keys_on_call_day), '?'));
+    $on_call_night_placeholders = implode(',', array_fill(0, count($valid_keys_on_call_night), '?'));
+
+    $sql1 = "
+    UPDATE roster
+    SET
+      last_modified = CASE WHEN is_active = true THEN now() ELSE last_modified END,
+      is_active = CASE WHEN is_active = true THEN false ELSE is_active END
+    WHERE date = ?
+      AND CONCAT(date, '#', id) NOT IN ($id_placeholders)
+  ";
+
+    $params1 = array_merge([$date], $valid_ids);
+    $stmt1 = $pdo->prepare($sql1);
+    $stmt1->execute($params1);
+
+
+    $sql2 = "
+    UPDATE roster
+    SET
+      on_call_day = false
+      WHERE date = ?
+        AND CONCAT(date, '#', id, '#', 'on_call_day') NOT IN ($on_call_day_placeholders)
+  ";
+
+    $params2 = array_merge([$date], $valid_keys_on_call_day);
+    $stmt2 = $pdo->prepare($sql2);
+    $stmt2->execute($params2);
+
+    $sql3 = "
+    UPDATE roster
+    SET
+      on_call_night = false
+      WHERE date = ?
+        AND CONCAT(date, '#', id, '#', 'on_call_night') NOT IN ($on_call_night_placeholders)
+  ";
+
+    $params3 = array_merge([$date], $valid_keys_on_call_night);
+    $stmt3 = $pdo->prepare($sql3);
+    $stmt3->execute($params3);
+  } else {
+    $stmt = $pdo->prepare("UPDATE roster SET is_active = false WHERE date = ?");
+    $stmt->execute([$date]);
+  }
+
+
+  print_r($valid_ids);
   return [
     'success' => true,
-    //'imported' => count($tagesplan)
+    'imported/updated' => count($valid_ids)
   ];
 }
 

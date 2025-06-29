@@ -3,7 +3,7 @@
 require_once 'app/app.php';
 
 $planWeekday = "Dienstag";
-$planDate = "2025-06-30";
+$planDate = "2025-06-29";
 
 
 $login = api_login();
