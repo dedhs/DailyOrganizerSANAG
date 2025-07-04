@@ -3,7 +3,12 @@
 require_once 'app/app.php';
 
 $planWeekday = "Dienstag";
-$planDate = "2025-06-29";
+$planDate = "2025-07-17";
+
+
+$date = new DateTime($planDate);
+$date_formatted = $date->format('d.m.Y');
+
 
 
 $login = api_login();
@@ -16,23 +21,33 @@ $login_data = [
 ];
 
 $pdo = new PDO('mysql:host=localhost;dbname=einteilungstool', 'root', '');
+
 $staff = get_mitarbeiter($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
-print_r($staff);
+
 $roster = get_dienste($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
-print_r($roster);
 
-//$staff = get_mitarbeiter($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client']);
+$roster_table = match_dienste_mitarbeiter($planDate, $roster, $staff, $pdo);
 
-//$roster_raw = get_dienste($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client']);
 
-//$roster = match_dienste_mitarbeiter($roster_raw, $staff);
+$shifts_ops = ['1', '2', 'N', 'PAS'];
+
+$staff_ops = array_filter($roster_table, function ($e) use ($shifts_ops) {
+  return in_array($e['dienst'], $shifts_ops);
+});
+$staff_ops = array_values($staff_ops);
+
+
+
+
+
+
 
 $view_data = [
   'title' => 'Tageseinteilung',
   'planWeekday' => $planWeekday,
-  'planDate' => $planDate,
+  'planDate' => $date_formatted,
   'staff' => $staff,
-  'roster' => $roster,
+  'roster' => $staff_ops,
 ];
 
 view('index', $view_data);

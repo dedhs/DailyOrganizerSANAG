@@ -143,13 +143,11 @@ function get_mitarbeiter($date, $token, $uid, $client, $pdo)
   ];
 }
 
-
 function get_dienste($date, $token, $uid, $client, $pdo)
 {
   $url = API_CONFIG_URLS['base_url_get_dienste'] . $date . ',' . $date;
   $ch = curl_init($url);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data)); -- no post data handed over to API, can be deleted if working!
   curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Content-Type: application/json',
     'access-token: ' . $token,
@@ -224,16 +222,17 @@ function get_dienste($date, $token, $uid, $client, $pdo)
     ]);
   }
 
-
   // Detect inactive entries
 
   $valid_ids = array_unique($valid_ids);
 
-
   if (count($valid_ids) > 0) {
-    // Generate Array with placeholders for prepared statement
+
+    // Generate Array with placeholders for prepared statements
     $id_placeholders = implode(',', array_fill(0, count($valid_ids), '?'));
+
     $on_call_day_placeholders = implode(',', array_fill(0, count($valid_keys_on_call_day), '?'));
+
     $on_call_night_placeholders = implode(',', array_fill(0, count($valid_keys_on_call_night), '?'));
 
     $sql1 = "
@@ -244,139 +243,78 @@ function get_dienste($date, $token, $uid, $client, $pdo)
     WHERE date = ?
       AND CONCAT(date, '#', id) NOT IN ($id_placeholders)
   ";
-
     $params1 = array_merge([$date], $valid_ids);
     $stmt1 = $pdo->prepare($sql1);
     $stmt1->execute($params1);
 
 
-    $sql2 = "
+    if ($on_call_day_placeholders != null) {
+      $sql2 = "
     UPDATE roster
     SET
       on_call_day = false
       WHERE date = ?
         AND CONCAT(date, '#', id, '#', 'on_call_day') NOT IN ($on_call_day_placeholders)
   ";
+      $params2 = array_merge([$date], $valid_keys_on_call_day);
+      $stmt2 = $pdo->prepare($sql2);
+      $stmt2->execute($params2);
+    }
 
-    $params2 = array_merge([$date], $valid_keys_on_call_day);
-    $stmt2 = $pdo->prepare($sql2);
-    $stmt2->execute($params2);
-
-    $sql3 = "
+    if ($on_call_night_placeholders != null) {
+      $sql3 = "
     UPDATE roster
     SET
       on_call_night = false
       WHERE date = ?
         AND CONCAT(date, '#', id, '#', 'on_call_night') NOT IN ($on_call_night_placeholders)
   ";
-
-    $params3 = array_merge([$date], $valid_keys_on_call_night);
-    $stmt3 = $pdo->prepare($sql3);
-    $stmt3->execute($params3);
+      $params3 = array_merge([$date], $valid_keys_on_call_night);
+      $stmt3 = $pdo->prepare($sql3);
+      $stmt3->execute($params3);
+    }
   } else {
     $stmt = $pdo->prepare("UPDATE roster SET is_active = false WHERE date = ?");
     $stmt->execute([$date]);
   }
 
-
-  print_r($valid_ids);
   return [
     'success' => true,
     'imported/updated' => count($valid_ids)
   ];
 }
 
-
-
-function match_dienste_mitarbeiter($roster, $staff)
+function match_dienste_mitarbeiter($date, $roster, $staff, $pdo)
 {
+  $sql_staff = "SELECT id, lastname, firstname FROM staff WHERE status = 1";
+  $stmt_staff = $pdo->prepare($sql_staff);
+  $stmt_staff->execute();
+  $staff = $stmt_staff->fetchAll(PDO::FETCH_ASSOC);
+
+  $sql_roster = "SELECT id, shift, on_call_day, on_call_night FROM roster WHERE date = :date";
+  $stmt_roster = $pdo->prepare($sql_roster);
+  $stmt_roster->execute([':date' => $date]);
+  $roster = $stmt_roster->fetchAll(PDO::FETCH_ASSOC);
+
   $staff_list = [];
   foreach ($staff as $s) {
     $staff_list[$s['id']] = $s;
   }
 
   $result = [];
-  foreach ($roster['tagesplan'] as $r) {
-    $id = $r['mitarbeiter_id'];
+  foreach ($roster as $r) {
+    $id = $r['id'];
     if (isset($staff_list[$id])) {
       $s = $staff_list[$id];
       $result[] = [
         'mitarbeiter_id' => $id,
-        'name' => $s['attributes']['nachname'] . ', ' . $s['attributes']['vorname'],
-        'dienst' => $r['kuerzel']
+        'name' => $s['lastname'] . ', ' . $s['firstname'],
+        'dienst' => $r['shift'],
+        'pikett_tag' => $r['on_call_day'],
+        'pikett_nacht' => $r['on_call_night']
       ];
     }
   }
 
   return $result;
 };
-
-
-// alter code
-
-/*
-function get_mitarbeiter($date, $token, $uid, $client)
-{
-  $url = API_CONFIG_URLS['base_url_get_mitarbeiter'] . $date . ',' . $date;
-  $ch = curl_init($url);
-  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Content-Type: application/json',
-    'access-token: ' . $token,
-    'uid: ' . $uid,
-    'client: ' . $client
-  ]);
-  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-
-  $response = curl_exec($ch);
-
-  $data = json_decode($response, true);
-
-  if (!isset($data['data'])) {
-    return ['error' => 'Keine Daten gefunden'];
-  }
-
-  return $data['data'];
-}
-
-
-function get_dienste($date, $token, $uid, $client)
-{
-  $url = API_CONFIG_URLS['base_url_get_dienste'] . $date . ',' . $date;
-  $ch = curl_init($url);
-  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data)); -- no post data handed over to API, can be deleted if working!
-  curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Content-Type: application/json',
-    'access-token: ' . $token,
-    'uid: ' . $uid,
-    'client: ' . $client
-  ]);
-  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-
-  $response = curl_exec($ch);
-
-  $data = json_decode($response);
-
-  if (!isset($data->data)) {
-    return json_encode(['error' => 'Keine Daten gefunden']);
-  }
-
-  $tagesplan = [];
-  foreach ($data->data as $data_item) {
-    $attributes = $data_item->attributes ?? null;
-
-    if ($attributes && isset($attributes->mitarbeiter_id) && isset($attributes->kuerzel)) {
-      $tagesplan[] = [
-        'mitarbeiter_id' => $attributes->mitarbeiter_id,
-        'kuerzel' => $attributes->kuerzel
-      ];
-    }
-  }
-
-  return ['tagesplan' => $tagesplan];
-}
-
-*/
