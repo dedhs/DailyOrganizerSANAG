@@ -201,8 +201,8 @@ function get_dienste($date, $token, $uid, $client, $pdo)
     }
 
     $stmt = $pdo->prepare("
-            INSERT INTO roster (date, id, shift, on_call_day, on_call_night, is_active, created, last_modified)
-            VALUES (:date, :id, :shift, :on_call_day, :on_call_night, true, now(), now())
+            INSERT INTO roster (date, fk_staffId, shift, on_call_day, on_call_night, is_active, created, last_modified)
+            VALUES (:date, :fk_staffId, :shift, :on_call_day, :on_call_night, true, now(), now())
             ON DUPLICATE KEY UPDATE
               shift = CASE
                 WHEN VALUES(shift) IS NOT NULL THEN VALUES(shift)
@@ -215,7 +215,7 @@ function get_dienste($date, $token, $uid, $client, $pdo)
 
     $stmt->execute([
       ':date' => $date,
-      ':id' => $id,
+      ':fk_staffId' => $id,
       ':shift' => $shift,
       ':on_call_day' => $on_call_day,
       ':on_call_night' => $on_call_night
@@ -241,7 +241,7 @@ function get_dienste($date, $token, $uid, $client, $pdo)
       last_modified = CASE WHEN is_active = true THEN now() ELSE last_modified END,
       is_active = CASE WHEN is_active = true THEN false ELSE is_active END
     WHERE date = ?
-      AND CONCAT(date, '#', id) NOT IN ($id_placeholders)
+      AND CONCAT(date, '#', fk_staffId) NOT IN ($id_placeholders)
   ";
     $params1 = array_merge([$date], $valid_ids);
     $stmt1 = $pdo->prepare($sql1);
@@ -254,7 +254,7 @@ function get_dienste($date, $token, $uid, $client, $pdo)
     SET
       on_call_day = false
       WHERE date = ?
-        AND CONCAT(date, '#', id, '#', 'on_call_day') NOT IN ($on_call_day_placeholders)
+        AND CONCAT(date, '#', fk_staffId, '#', 'on_call_day') NOT IN ($on_call_day_placeholders)
   ";
       $params2 = array_merge([$date], $valid_keys_on_call_day);
       $stmt2 = $pdo->prepare($sql2);
@@ -267,7 +267,7 @@ function get_dienste($date, $token, $uid, $client, $pdo)
     SET
       on_call_night = false
       WHERE date = ?
-        AND CONCAT(date, '#', id, '#', 'on_call_night') NOT IN ($on_call_night_placeholders)
+        AND CONCAT(date, '#', fk_staffId, '#', 'on_call_night') NOT IN ($on_call_night_placeholders)
   ";
       $params3 = array_merge([$date], $valid_keys_on_call_night);
       $stmt3 = $pdo->prepare($sql3);
@@ -291,7 +291,7 @@ function match_dienste_mitarbeiter($date, $roster, $staff, $pdo)
   $stmt_staff->execute();
   $staff = $stmt_staff->fetchAll(PDO::FETCH_ASSOC);
 
-  $sql_roster = "SELECT id, shift, on_call_day, on_call_night FROM roster WHERE date = :date";
+  $sql_roster = "SELECT fk_staffId, shift, on_call_day, on_call_night FROM roster WHERE date = :date";
   $stmt_roster = $pdo->prepare($sql_roster);
   $stmt_roster->execute([':date' => $date]);
   $roster = $stmt_roster->fetchAll(PDO::FETCH_ASSOC);
@@ -302,8 +302,11 @@ function match_dienste_mitarbeiter($date, $roster, $staff, $pdo)
   }
 
   $result = [];
+
+
+
   foreach ($roster as $r) {
-    $id = $r['id'];
+    $id = $r['fk_staffId'];
     if (isset($staff_list[$id])) {
       $s = $staff_list[$id];
       $result[] = [
@@ -315,6 +318,11 @@ function match_dienste_mitarbeiter($date, $roster, $staff, $pdo)
       ];
     }
   }
+
+  // Sorting names in alphabetical order
+  usort($result, function ($a, $b) {
+    return strcmp($a['name'], $b['name']);
+  });
 
   return $result;
 };

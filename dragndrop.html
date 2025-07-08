@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SortableJS Beispiel</title>
+    <style>
+      .liste {
+        display: inline-block;
+        width: 150px;
+        height: 150px; /* Fixe Höhe hält die Box konstant */
+        margin: 10px;
+        padding: 10px;
+        border: 2px dashed #666;
+        vertical-align: top;
+      }
+
+      .karte {
+        padding: 10px;
+        margin: 5px;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        cursor: grab;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="kärtchen" class="liste">
+      <div class="karte">Anna</div>
+      <div class="karte">Peter</div>
+      <div class="karte">Karl</div>
+      <div class="karte">Helmut</div>
+      <div class="karte">Chiara</div>
+    </div>
+
+    <div id="platzhalter1" class="liste"></div>
+    <div id="platzhalter2" class="liste"></div>
+    <div id="platzhalter3" class="liste"></div>
+
+    <!-- SortableJS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+    <script>
+      // Ursprüngliche Liste
+      Sortable.create(document.getElementById("kärtchen"), {
+        group: "shared",
+        animation: 150,
+      });
+
+      // Platzhalter 1
+      Sortable.create(document.getElementById("platzhalter1"), {
+        group: "shared",
+        animation: 150,
+      });
+
+      // Platzhalter 2
+      Sortable.create(document.getElementById("platzhalter2"), {
+        group: "shared",
+        animation: 150,
+      });
+
+      // Platzhalter 3
+      Sortable.create(document.getElementById("platzhalter3"), {
+        group: "shared",
+        animation: 150,
+      });
+    </script>
+  </body>
+</html>

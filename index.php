@@ -2,13 +2,23 @@
 
 require_once 'app/app.php';
 
-$planWeekday = "Dienstag";
-$planDate = "2025-07-17";
-
+$planDate = getPlanDate();
 
 $date = new DateTime($planDate);
 $date_formatted = $date->format('d.m.Y');
+$weekdayNumber = $date->format('N');
 
+$daysDE = [
+  1 => 'Montag',
+  2 => 'Dienstag',
+  3 => 'Mittwoch',
+  4 => 'Donnerstag',
+  5 => 'Freitag',
+  6 => 'Samstag',
+  7 => 'Sonntag'
+];
+
+$planWeekday = $daysDE[$weekdayNumber];
 
 
 $login = api_login();
@@ -29,13 +39,25 @@ $roster = get_dienste($planDate, $login_data['access-token'], $login_data['uid']
 $roster_table = match_dienste_mitarbeiter($planDate, $roster, $staff, $pdo);
 
 
-$shifts_ops = ['1', '2', 'N', 'PAS'];
+$shifts_ops = ['1', '2'];
+
+// TODO PAS-Kürzel berücksichtigen
 
 $staff_ops = array_filter($roster_table, function ($e) use ($shifts_ops) {
   return in_array($e['dienst'], $shifts_ops);
 });
 $staff_ops = array_values($staff_ops);
 
+$night_shift = array_filter($roster_table, function ($e) {
+  return in_array($e['dienst'], ['N']);
+});
+$on_call_night = array_filter($roster_table, function ($e) {
+  return $e['pikett_nacht'];
+});
+
+$on_call_day = array_filter($roster_table, function ($e) {
+  return $e['pikett_tag'];
+});
 
 
 
@@ -48,6 +70,9 @@ $view_data = [
   'planDate' => $date_formatted,
   'staff' => $staff,
   'roster' => $staff_ops,
+  'night_shift' => $night_shift,
+  'on_call_night' => $on_call_night,
+  'on_call_day' => $on_call_day
 ];
 
 view('index', $view_data);

@@ -13,6 +13,16 @@ body {
   margin-bottom: 10px;
 }
 
+.container-wrapper {
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap; /* Neu: lässt sie umbrechen bei wenig Platz */
+}
+
+.task-column {
+  flex: 1;
+}
+
 .checkbox-container {
   background: #f0f0f0;
   padding: 15px;
