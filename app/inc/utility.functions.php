@@ -5,10 +5,10 @@ function view($template, $data = [])
   require APP_PATH . "views/layout.view.php";
 }
 
-function getPlanDate()
+function get_date($type)
 {
   if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $inputDate = $_POST['plan-date'] ?? '';
+    $inputDate = $_POST[$type] ?? '';
 
     if ($inputDate) {
       $date = DateTime::createFromFormat('d.m.Y', $inputDate);

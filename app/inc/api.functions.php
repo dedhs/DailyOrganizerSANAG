@@ -143,6 +143,67 @@ function get_mitarbeiter($date, $token, $uid, $client, $pdo)
   ];
 }
 
+function get_dienstvorlagen($token, $uid, $client, $pdo)
+{
+  $url = API_CONFIG_URLS['base_url_get_dienstvorlagen'];
+  $ch = curl_init($url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'access-token: ' . $token,
+    'uid: ' . $uid,
+    'client: ' . $client
+  ]);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+
+  $response = curl_exec($ch);
+
+  curl_close($ch);
+
+  $data = json_decode($response, true);
+
+  if (!isset($data['data'])) {
+    return ['error' => 'Keine Daten gefunden'];
+  }
+
+  $api_ids = [];
+
+  foreach ($data['data'] as $m) {
+    $shift_id = $m['id'];
+    $shift_symbol = $m['attributes']['kuerzel'] ?? '';
+    $shift_description = $m['attributes']['legende'] ?? '';
+    $time_start = new DateTime($m['attributes']['zeit_von']) ?? '';
+    $time_start = $time_start->format('Y-m-d H:i:s');
+    $time_end = new DateTime($m['attributes']['zeit_bis']) ?? '';
+    $time_end = $time_end->format('Y-m-d H:i:s');
+    $remark = $m['attributes']['notiz'] ?? '';
+
+    $api_ids[] = $shift_id;
+
+    $stmt = $pdo->prepare("
+            INSERT INTO shiftTemplates (shift_id, shift_symbol, shift_description, time_start, time_end, remark, is_active, created, last_modified)
+            VALUES (:shift_id, :shift_symbol, :shift_description, :time_start, :time_end, :remark, true, now(), now())
+            ON DUPLICATE KEY UPDATE
+              shift_symbol = VALUES(shift_symbol),
+              shift_description = VALUES(shift_description),
+              time_start = VALUES(time_start),
+              time_end = VALUES(time_end),
+              remark = VALUES(remark),
+              is_active = true
+        ");
+
+    $stmt->execute([
+      ':shift_id' => $shift_id,
+      ':shift_symbol' => $shift_symbol,
+      ':shift_description' => $shift_description,
+      ':time_start' => $time_start,
+      ':time_end' => $time_end,
+      ':remark' => $remark
+    ]);
+  }
+}
+
 function get_dienste($date, $token, $uid, $client, $pdo)
 {
   $url = API_CONFIG_URLS['base_url_get_dienste'] . $date . ',' . $date;
@@ -325,4 +386,143 @@ function match_dienste_mitarbeiter($date, $roster, $staff, $pdo)
   });
 
   return $result;
-};
+}
+
+function add_dienst($date, $shift, $name, $token, $uid, $client, $pdo)
+{
+  $url = API_CONFIG_URLS['base_url_planungsverlauf'];
+  $ch = curl_init($url);
+
+  $body = json_encode([
+    'data' => [
+      'type' => 'planungsverlauf',
+      'attributes' => [
+        'actions' => [
+          [
+            'action' => 'add',
+            'type' => 'dienst',
+            'attributes' => [
+              'datum' => $date
+            ],
+            'relationships' => [
+              'dienstart' => [
+                'data' => [
+                  'type' => 'dienstart',
+                  'filters' => [
+                    'kuerzel' => [
+                      'eq' => $shift
+                    ]
+                  ]
+                ]
+              ],
+              'mitarbeiter' => [
+                'data' => [
+                  'type' => 'mitarbeiter',
+                  'filters' => [
+                    'kuerzel' => [
+                      'eq' => $name
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]);
+
+  curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+  curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+  curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'access-token: ' . $token,
+    'uid: ' . $uid,
+    'client: ' . $client
+  ]);
+
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+
+  $response = curl_exec($ch);
+
+  if (curl_errno($ch)) {
+    echo 'cURL-Error: ' . curl_error($ch);
+  }
+
+  curl_close($ch);
+
+  $data = json_decode($response);
+
+  var_dump($response);
+
+  // TODO: Dienständerung in MySQL-DB schreiben! pdo für Testzwecke entfernt
+
+}
+
+function delete_dienst($date, $shift, $name, $token, $uid, $client, $pdo)
+{
+  $url = API_CONFIG_URLS['base_url_planungsverlauf'];
+  $ch = curl_init($url);
+
+  $body = json_encode([
+    'data' => [
+      'type' => 'planungsverlauf',
+      'attributes' => [
+        'actions' => [
+          [
+            'action' => 'delete',
+            'type' => 'dienst',
+            'filters' => [
+              'datum_zeit_von' => [
+                'between' => [
+                  $date,
+                  $date
+                ]
+              ],
+              'mitarbeiter.kuerzel' => [
+                'eq' => $name
+              ],
+              'dienstart.kuerzel' => [
+                'eq' => $shift
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]);
+
+  curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+  curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+  curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'access-token: ' . $token,
+    'uid: ' . $uid,
+    'client: ' . $client
+  ]);
+
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+
+  $response = curl_exec($ch);
+
+  if (curl_errno($ch)) {
+    echo 'cURL-Error: ' . curl_error($ch);
+  }
+
+  curl_close($ch);
+
+  $data = json_decode($response);
+
+  var_dump($response);
+
+  // TODO: Dienständerung in MySQL-DB schreiben! pdo für Testzwecke entfernt
+
+}

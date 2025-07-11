@@ -12,9 +12,12 @@
 <body>
   <form action="" method="post">
     <label for="plan-date">Bitte Datum eingeben/auswählen:</label>
-    <input type="text" id="plan-date" name="plan-date" placeholder="TT.MM.JJJJ">
+    <input type="text" id="plan-date" class="date-entry" name="plan-date" placeholder="TT.MM.JJJJ">
     <button type="submit">Absenden</button>
   </form>
+
+
+
 
 
   <h1><?= "Tageseinteilung für " . $data['planWeekday'] . ", " . $data['planDate'] ?></h1>
@@ -132,8 +135,22 @@
     </div>
 
 
+    <br>
+
+    <form action="" method="post">
+      <label for="mod-date">Bitte Datum für die Dienständerung eingeben/auswählen:</label>
+      <input type="text" id="mod-date" class="date-entry" name="mod-date" placeholder="TT.MM.JJJJ">
+      <button type="submit">Absenden</button>
+    </form>
+
+
 
   </section>
+
+
+
+
+
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="views/script.js"></script>

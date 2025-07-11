@@ -2,7 +2,8 @@
 
 require_once 'app/app.php';
 
-$planDate = getPlanDate();
+// Dienstplan abrufen
+$planDate = get_date('plan-date');
 
 $date = new DateTime($planDate);
 $date_formatted = $date->format('d.m.Y');
@@ -19,6 +20,9 @@ $daysDE = [
 ];
 
 $planWeekday = $daysDE[$weekdayNumber];
+
+// Add/Delete Dienste
+$planModDate = get_date('mod-date');
 
 
 $login = api_login();
@@ -39,9 +43,9 @@ $roster = get_dienste($planDate, $login_data['access-token'], $login_data['uid']
 $roster_table = match_dienste_mitarbeiter($planDate, $roster, $staff, $pdo);
 
 
-$shifts_ops = ['1', '2'];
+$shifts_ops = ['1', '2', '1WE'];
 
-// TODO PAS-Kürzel berücksichtigen
+// TODO 1WE &PAS-Kürzel berücksichtigen
 
 $staff_ops = array_filter($roster_table, function ($e) use ($shifts_ops) {
   return in_array($e['dienst'], $shifts_ops);
@@ -60,8 +64,16 @@ $on_call_day = array_filter($roster_table, function ($e) {
 });
 
 
+// Dienstvorlagen abrufen
+
+get_dienstvorlagen($login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
 
 
+// add_dienst($planModDate, 'N', 'HAS', $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
+
+delete_dienst($planModDate, 'N', 'HAS', $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
+
+// TODO: Mail mit DP-Änderung auslösen
 
 
 $view_data = [
