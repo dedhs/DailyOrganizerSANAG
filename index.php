@@ -2,6 +2,64 @@
 
 require_once 'app/app.php';
 
+//
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  // Prüfe: Kommt es von deinem JS?
+  $input = json_decode(file_get_contents('php://input'), true);
+  if (isset($input['ajax']) && $input['ajax'] === true) {
+    header('Content-Type: application/json');
+
+    $date = $input['date'] ?? null;
+    $employeeId = $input['employee_id'] ?? null;
+    $trigram = $input['employee_trigram'] ?? null;
+
+    $currentShift = 'kein Dienst bzw. Dienstplan noch nicht freigegeben';
+
+    if ($date && $employeeId) {
+
+      $dateObj = DateTime::createFromFormat('d.m.Y', $date);
+      $dateForDb = $dateObj ? $dateObj->format('Y-m-d') : $date;
+
+      $pdo = new PDO('mysql:host=localhost;dbname=einteilungstool', 'root', '');
+
+      $result = fetch_dbdata(
+        'roster',
+        'shift',
+        'ASC',
+        $pdo,
+        [
+          ['column' => 'date', 'operator' => '=', 'value' => $dateForDb],
+          ['column' => 'fk_staffId', 'operator' => '=', 'value' => $employeeId],
+          ['column' => 'is_active', 'operator' => '=', 'value' => true]
+        ],
+        'shift',
+        'on_call_day',
+        'on_call_night'
+      );
+
+      if ($result && count($result) > 0) {
+        $currentShift = $result[0]['shift'];
+        $onCallDay = $result[0]['on_call_day'];
+        $onCallNight = $result[0]['on_call_night'];
+      }
+    }
+
+    echo json_encode([
+      'current_shift' => $currentShift,
+      'on_call_day_scheduled' => $onCallDay,
+      'on_call_night_scheduled' => $onCallNight,
+      'trigram' => $trigram
+    ]);
+    exit;
+  }
+}
+
+
+
+//
+
+
 // Dienstplan abrufen
 $planDate = get_date('plan-date');
 
@@ -64,14 +122,16 @@ $on_call_day = array_filter($roster_table, function ($e) {
 });
 
 
-// Dienstvorlagen abrufen
 
 get_dienstvorlagen($login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
 
+$employee = fetch_dbdata('staff',  'lastname', 'ASC', $pdo, [], 'lastname', 'firstname', 'trigram', 'id');
 
-// add_dienst($planModDate, 'N', 'HAS', $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
+$shifts = fetch_dbdata('shiftTemplates',  'shift_symbol', 'ASC', $pdo, [], 'shift_id', 'shift_symbol');
 
-delete_dienst($planModDate, 'N', 'HAS', $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
+//add_dienst($planModDate, $_POST['shift'], $_POST['employee-trigram'], $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
+
+delete_dienst($planModDate, $_POST['shift'], $_POST['employee-trigram'], $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
 
 // TODO: Mail mit DP-Änderung auslösen
 
@@ -84,7 +144,12 @@ $view_data = [
   'roster' => $staff_ops,
   'night_shift' => $night_shift,
   'on_call_night' => $on_call_night,
-  'on_call_day' => $on_call_day
+  'on_call_day' => $on_call_day,
+  'employee' => $employee,
+  'current_shift' => 'Datum/Mitarbeiter noch nicht ausgewählt',
+  'on_call_day_scheduled' => '',
+  'on_call_night_scheduled' => '',
+  'shifts' => $shifts
 ];
 
 view('index', $view_data);

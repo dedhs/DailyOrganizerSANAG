@@ -163,9 +163,17 @@ function get_dienstvorlagen($token, $uid, $client, $pdo)
 
   $data = json_decode($response, true);
 
+  //Ausgabe
+  // echo '<pre>';
+  // print_r($data);
+  // echo '</pre>';
+
+
+
   if (!isset($data['data'])) {
     return ['error' => 'Keine Daten gefunden'];
   }
+
 
   $api_ids = [];
 
@@ -202,6 +210,22 @@ function get_dienstvorlagen($token, $uid, $client, $pdo)
       ':remark' => $remark
     ]);
   }
+
+  // Alle Dienstvorlagen, die NICHT mehr in der API sind, auf is_active = false setzen
+  if (count($api_ids) > 0) {
+    $in = implode(',', array_fill(0, count($api_ids), '?'));
+    $stmt = $pdo->prepare("
+            UPDATE shiftTemplates
+            SET is_active = false, last_modified = now()
+            WHERE shift_id NOT IN ($in)
+        ");
+    $stmt->execute($api_ids);
+  }
+
+  return [
+    'success' => true,
+    'imported' => count($api_ids)
+  ];
 }
 
 function get_dienste($date, $token, $uid, $client, $pdo)
@@ -345,49 +369,6 @@ function get_dienste($date, $token, $uid, $client, $pdo)
   ];
 }
 
-function match_dienste_mitarbeiter($date, $roster, $staff, $pdo)
-{
-  $sql_staff = "SELECT id, lastname, firstname FROM staff WHERE status = 1";
-  $stmt_staff = $pdo->prepare($sql_staff);
-  $stmt_staff->execute();
-  $staff = $stmt_staff->fetchAll(PDO::FETCH_ASSOC);
-
-  $sql_roster = "SELECT fk_staffId, shift, on_call_day, on_call_night FROM roster WHERE date = :date";
-  $stmt_roster = $pdo->prepare($sql_roster);
-  $stmt_roster->execute([':date' => $date]);
-  $roster = $stmt_roster->fetchAll(PDO::FETCH_ASSOC);
-
-  $staff_list = [];
-  foreach ($staff as $s) {
-    $staff_list[$s['id']] = $s;
-  }
-
-  $result = [];
-
-
-
-  foreach ($roster as $r) {
-    $id = $r['fk_staffId'];
-    if (isset($staff_list[$id])) {
-      $s = $staff_list[$id];
-      $result[] = [
-        'mitarbeiter_id' => $id,
-        'name' => $s['lastname'] . ', ' . $s['firstname'],
-        'dienst' => $r['shift'],
-        'pikett_tag' => $r['on_call_day'],
-        'pikett_nacht' => $r['on_call_night']
-      ];
-    }
-  }
-
-  // Sorting names in alphabetical order
-  usort($result, function ($a, $b) {
-    return strcmp($a['name'], $b['name']);
-  });
-
-  return $result;
-}
-
 function add_dienst($date, $shift, $name, $token, $uid, $client, $pdo)
 {
   $url = API_CONFIG_URLS['base_url_planungsverlauf'];
@@ -461,6 +442,21 @@ function add_dienst($date, $shift, $name, $token, $uid, $client, $pdo)
 
   // TODO: Dienständerung in MySQL-DB schreiben! pdo für Testzwecke entfernt
 
+  $fk_staffId = fetch_dbdata('staff', 'lastname', 'ASC', $pdo, [
+    ['column' => 'trigram', 'operator' => '=', 'value' => $name]
+  ], 'id');
+
+  $sql = "
+    INSERT INTO roster (date, fk_staffId, shift, is_active, created, last_modified)
+    VALUES (:date, :fk_staffId, :shift, true, now(), now())
+  ";
+
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute([
+    ':date' => $date,
+    ':fk_staffId' => $fk_staffId[0]['id'],
+    ':shift' => $shift
+  ]);
 }
 
 function delete_dienst($date, $shift, $name, $token, $uid, $client, $pdo)
@@ -523,6 +519,23 @@ function delete_dienst($date, $shift, $name, $token, $uid, $client, $pdo)
 
   var_dump($response);
 
-  // TODO: Dienständerung in MySQL-DB schreiben! pdo für Testzwecke entfernt
+  // TODO: Dienständerung in MySQL-DB schreiben!
 
+  $fk_staffId = fetch_dbdata('staff', 'lastname', 'ASC', $pdo, [
+    ['column' => 'trigram', 'operator' => '=', 'value' => $name]
+  ], 'id');
+
+  $sql = "
+    UPDATE roster
+    SET
+      last_modified = now(),
+      is_active = false
+    WHERE date = :date AND fk_staffId = :fk_staffId
+  ";
+
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute([
+    ':date' => $date,
+    ':fk_staffId' => $fk_staffId[0]['id']
+  ]);
 }

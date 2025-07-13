@@ -139,7 +139,37 @@
 
     <form action="" method="post">
       <label for="mod-date">Bitte Datum für die Dienständerung eingeben/auswählen:</label>
-      <input type="text" id="mod-date" class="date-entry" name="mod-date" placeholder="TT.MM.JJJJ">
+      <input type="text" id="mod-date" class="date-entry" name="mod-date" placeholder="Datum auswählen">
+
+      <label for="employee">Mitarbeiter wählen:</label>
+      <select name="employee" id="employee">
+        <option value="" selected disabled hidden>Mitarbeiter auswählen</option>
+        <?php foreach ($data['employee'] as $s): ?>
+          <option
+            value="<?= htmlspecialchars($s['id']) ?>"
+            data-trigram="<?= htmlspecialchars($s['trigram']) ?>">
+            <?= htmlspecialchars($s['lastname'] . ', ' . $s['firstname']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+
+      <input type="hidden" id="employee-trigram" name="employee-trigram">
+
+      <p>aktueller Dienst: <span id="current-shift"><?= $data['current_shift'] ?? 'Kein Wert' ?></span></p>
+      <p>Pikett Tag: <span id="on-call-day-scheduled"><?= $data['on_call_day_scheduled'] ?? 'Kein Wert' ?></span></p>
+      <p>Pikett Nacht: <span id="on-call-night-scheduled"><?= $data['on_call_night_scheduled'] ?? 'Kein Wert' ?></span></p>
+
+
+      <label for="shift">Zu besetzenden Dienst wählen:</label>
+      <select name="shift" id="shift">
+        <option value="" selected disabled hidden>Dienst auswählen</option>
+        <?php foreach ($data['shifts'] as $s): ?>
+          <option value="<?= htmlspecialchars($s['shift_symbol']) ?>">
+            <?= htmlspecialchars($s['shift_symbol']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+
       <button type="submit">Absenden</button>
     </form>
 
