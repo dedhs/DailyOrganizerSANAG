@@ -75,8 +75,11 @@ function fetch_dbdata($table, $sort_by_value, $sort_order, $pdo, array $where = 
   return $data;
 }
 
-function change_shift($date, $current_shift, $new_shift, $name, $token, $uid, $client, $pdo)
+function change_shift($date, $current_shift, $new_shift, $current_on_call, $new_on_call, $name, $token, $uid, $client, $pdo)
 {
+
+  $new_on_call_day = in_array('new-on-call-day', $new_on_call);
+  $new_on_call_night = in_array('new-on-call-night', $new_on_call);
 
   try {
     $fk_staffId = fetch_dbdata('staff', 'lastname', 'ASC', $pdo, [
@@ -90,59 +93,95 @@ function change_shift($date, $current_shift, $new_shift, $name, $token, $uid, $c
       ['column' => 'date', 'operator' => '=', 'value' => $date]
     ], 'shift', 'on_call_day', 'on_call_night');
 
-
     // Change entry in Planik
+    // regular shift
     $deleteResult = delete_dienst($date, $current_shift, $name, $token, $uid, $client);
     $addResult = add_dienst($date, $new_shift, $name, $token, $uid, $client);
+
+
+    // on call
+    // on_call_day already in roster?
+    if (!empty($existing_shift[0]) && $existing_shift[0]['on_call_day'] === 1) {
+      // on_call_day also in new entry?
+      if (!$new_on_call_day) {
+        $deleteResultOnCallDay = delete_dienst($date, 'P/T', $name, $token, $uid, $client);
+      }
+    } else {
+      if ($new_on_call_day) {
+        $addResultOnCallDay = add_dienst($date, 'P/T', $name, $token, $uid, $client);
+      }
+    }
+
+    // on_call_night already in roster?
+    if (!empty($existing_shift[0]) && $existing_shift[0]['on_call_night'] === 1) {
+      // on_call_night also in new entry?
+      if (!$new_on_call_night) {
+        $deleteResultOnCallNight = delete_dienst($date, 'P/N', $name, $token, $uid, $client);
+      }
+    } else {
+      if ($new_on_call_night) {
+        $addResultOnCallNight = add_dienst($date, 'P/N', $name, $token, $uid, $client);
+      }
+    }
 
     if (!$deleteResult['success'] || !$addResult['success']) {
       return [
         'success' => false,
         'error' => 'API-Fehler beim Diensttausch',
         'details' => [
-          'delete' => $deleteResult,
-          'add' => $addResult
+          'deleteShift' => $deleteResult,
+          'addShift' => $addResult,
+          'deleteOnCallDay' => $deleteResultOnCallDay,
+          'addOnCallDay' => $addResultOnCallDay,
+          'deleteOnCallNight' => $deleteResultOnCallNight,
+          'addOnCallNight' => $addResultOnCallNight
         ]
       ];
     }
 
 
-    // Für Mitarbeiter existiert noch kein DB-Eintrag (bisher kein Dienst in Planik geplant) -> neuen Eintrag erstellen
-    // TODO: noch Pikett Tag/Nacht abfangen und Änderungen eintragen
-    if (!isset($existing_shift[0]['shift'])) {
+    // make DB entry
+    // no existing entry in DB
+    if (!isset($existing_shift[0]['shift']) || !isset($existing_shift[0]['on_call_day']) || !isset($existing_shift[0]['on_call_night'])) {
 
       $sql = "
-    INSERT INTO roster (date, fk_staffId, shift, is_active, created, last_modified)
-    VALUES (:date, :fk_staffId, :shift, true, now(), now())
-  ";
-
+        INSERT INTO roster (date, fk_staffId, shift, on_call_day, on_call_night, is_active, created, last_modified)
+        VALUES (:date, :fk_staffId, :shift, :on_call_day, :on_call_night, true, now(), now())
+      ";
 
       $stmt = $pdo->prepare($sql);
       $stmt->execute([
         ':date' => $date,
         ':fk_staffId' => $fk_staffId[0]['id'],
-        ':shift' => $new_shift
+        ':shift' => $new_shift,
+        ':on_call_day' => $new_on_call_day ? 1 : 0,
+        ':on_call_night' => $new_on_call_night ? 1 : 0
       ]);
     } else
-    // Für Mitarbeiter existiert bereits ein DB-Eintrag -> Eintrag modifizieren
-    // TODO: noch Pikett Tag/Nacht abfangen und Änderungen eintragen
+    // existing entry in DB
     {
+
       $sql = "
-    UPDATE roster
-    SET
-      shift = :shift,
-      is_active = true,
-      last_modified = now()
-    WHERE date = :date AND fk_staffId = :fk_staffId
-  ";
+        UPDATE roster
+        SET
+          shift = :shift,
+          on_call_day = :on_call_day,
+          on_call_night = :on_call_night,
+          is_active = true,
+          last_modified = now()
+        WHERE date = :date AND fk_staffId = :fk_staffId
+      ";
 
       $stmt = $pdo->prepare($sql);
       $stmt->execute([
         ':shift' => $new_shift,
+        ':on_call_day' => $new_on_call_day ? 1 : 0,
+        ':on_call_night' => $new_on_call_night ? 1 : 0,
         ':date' => $date,
         ':fk_staffId' => $fk_staffId[0]['id']
       ]);
     }
+
     return ['success' => true];
   } catch (Exception $e) {
     return [

@@ -80,7 +80,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $date = $input['date'] ?? null;
       $currentShift = $input['current_shift'] ?? null;
       $newShift = $input['new_shift'] ?? null;
+      $currentOnCall = $input['current_on_call'] ?? null;
+      $newOnCall = $input['new_on_call'] ?? null;
       $trigram = $input['employee_trigram'] ?? null;
+
 
       if (!$date || !$currentShift || !$newShift || !$trigram) {
         echo json_encode([
@@ -90,6 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'date' => $date,
             'currentShift' => $currentShift,
             'newShift' => $newShift,
+            'currentOnCall' => $currentOnCall,
+            'newOnCall' => $newOnCall,
             'trigram' => $trigram
           ]
         ]);
@@ -100,6 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $date,
         $currentShift,
         $newShift,
+        $currentOnCall,
+        $newOnCall,
         $trigram,
         $login_data['access-token'],
         $login_data['uid'],

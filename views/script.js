@@ -41,13 +41,12 @@ function fetchCurrentShift() {
     }),
   })
     .then((response) => response.json())
-    //.then((response) => response.text())
     .then((data) => {
       console.log("Roh-Response:", data);
       currentShift.textContent = data.current_shift || "-";
       onCallDay.textContent = data.on_call_day_scheduled || "-";
       onCallNight.textContent = data.on_call_night_scheduled || "-";
-      console.log("Trigram für spätere API:", data.trigram);
+      console.log("Trigram:", data.trigram);
     })
     .catch((err) => {
       console.error(err);
@@ -66,14 +65,25 @@ changeShift.addEventListener("click", function () {
   //const employeeId = employeeSelect.value;
   const trigram = trigramInput.value;
   const currentShiftValue = currentShift.textContent.trim();
+  const onCallDayValue = onCallDay.textContent.trim();
+  const onCallNightValue = onCallNight.textContent.trim();
   const newShiftValue = newShift.value;
+  const newOnCall = document.querySelectorAll(
+    'input[name = "new-on-call"]:checked'
+  );
+  const newOnCallValues = Array.from(newOnCall).map((noc) => noc.value);
 
   console.log("Was wird geschickt?", {
     dateValue,
     currentShiftValue,
+    onCallDayValue,
+    onCallNightValue,
     newShiftValue,
+    newOnCallValues,
     trigram,
   });
+
+  console.log(newOnCallValues);
 
   fetch("index.php", {
     method: "POST",
@@ -84,6 +94,8 @@ changeShift.addEventListener("click", function () {
       date: dateValue,
       current_shift: currentShiftValue,
       new_shift: newShiftValue,
+      current_on_call: [onCallDayValue, onCallNightValue],
+      new_on_call: newOnCallValues,
       employee_trigram: trigram,
     }),
   })
@@ -101,6 +113,7 @@ changeShift.addEventListener("click", function () {
 
       if (data.success) {
         alert("Dienst wurde erfolgreich getauscht!");
+        fetchCurrentShift();
       } else {
         alert("Fehler beim Diensttausch: " + (data.error || "Unbekannt"));
       }

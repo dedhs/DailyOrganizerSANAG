@@ -333,7 +333,7 @@ function get_dienste($date, $token, $uid, $client, $pdo)
     $stmt1->execute($params1);
 
 
-    if ($on_call_day_placeholders != null) {
+    if (!empty($on_call_day_placeholders)) {
       $sql2 = "
     UPDATE roster
     SET
@@ -342,11 +342,20 @@ function get_dienste($date, $token, $uid, $client, $pdo)
         AND CONCAT(date, '#', fk_staffId, '#', 'on_call_day') NOT IN ($on_call_day_placeholders)
   ";
       $params2 = array_merge([$date], $valid_keys_on_call_day);
-      $stmt2 = $pdo->prepare($sql2);
-      $stmt2->execute($params2);
+    } else {
+      // Kein einziger P/T vorhanden → alle für diesen Tag zurücksetzen
+      $sql2 = "
+    UPDATE roster
+    SET on_call_day = false
+    WHERE date = ?
+  ";
+      $params2 = [$date];
     }
 
-    if ($on_call_night_placeholders != null) {
+    $stmt2 = $pdo->prepare($sql2);
+    $stmt2->execute($params2);
+
+    if (!empty($on_call_night_placeholders)) {
       $sql3 = "
     UPDATE roster
     SET
@@ -355,9 +364,18 @@ function get_dienste($date, $token, $uid, $client, $pdo)
         AND CONCAT(date, '#', fk_staffId, '#', 'on_call_night') NOT IN ($on_call_night_placeholders)
   ";
       $params3 = array_merge([$date], $valid_keys_on_call_night);
-      $stmt3 = $pdo->prepare($sql3);
-      $stmt3->execute($params3);
+    } else {
+      // Kein einziger P/N vorhanden → alle für diesen Tag zurücksetzen
+      $sql3 = "
+    UPDATE roster
+    SET on_call_night = false
+    WHERE date = ?
+  ";
+      $params3 = [$date];
     }
+
+    $stmt3 = $pdo->prepare($sql3);
+    $stmt3->execute($params3);
   } else {
     $stmt = $pdo->prepare("UPDATE roster SET is_active = false WHERE date = ?");
     $stmt->execute([$date]);

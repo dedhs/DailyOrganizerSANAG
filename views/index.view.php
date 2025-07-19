@@ -169,10 +169,12 @@
           </option>
         <?php endforeach; ?>
       </select>
-      <select name="new-on-call[]" id="new-on-call" multiple size="2">
-        <option value="on-call-day">Pikett Tag</option>
-        <option value="on-call-night">Pikett Nacht</option>
-      </select>
+
+      <form id="new-on-call">
+        <label><input type="checkbox" name="new-on-call" value="new-on-call-day">Pikett Tag</label>
+        <label><input type="checkbox" name="new-on-call" value="new-on-call-night">Pikett Nacht</label>
+      </form>
+
       <button id="change-shift" type="submit">Absenden</button>
     </form>
 
