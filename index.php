@@ -2,62 +2,116 @@
 
 require_once 'app/app.php';
 
-//
+
+$login = api_login();
+$login_json = json_encode($login);
+$login_headers = json_decode($login_json)->headers;
+$login_data = [
+  'access-token' => $login_headers->access_token,
+  'client' => $login_headers->client,
+  'uid' => $login_headers->uid,
+];
+
+$pdo = new PDO('mysql:host=localhost;dbname=einteilungstool', 'root', '');
+
+
+
+$currentShift = 'kein Dienst bzw. Dienstplan noch nicht freigegeben';
+$onCallDay = '-';
+$onCallNight = '-';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // Prüfe: Kommt es von deinem JS?
   $input = json_decode(file_get_contents('php://input'), true);
-  if (isset($input['ajax']) && $input['ajax'] === true) {
-    header('Content-Type: application/json');
 
-    $date = $input['date'] ?? null;
-    $employeeId = $input['employee_id'] ?? null;
-    $trigram = $input['employee_trigram'] ?? null;
+  $action = $input['action'] ?? null;
 
-    $currentShift = 'kein Dienst bzw. Dienstplan noch nicht freigegeben';
+  switch ($action) {
+    case 'displayCurrentShift':
+      if (isset($input['ajax']) && $input['ajax'] === true) {
+        header('Content-Type: application/json');
 
-    if ($date && $employeeId) {
+        $date = $input['date'] ?? null;
+        $employeeId = $input['employee_id'] ?? null;
+        $trigram = $input['employee_trigram'] ?? null;
 
-      $dateObj = DateTime::createFromFormat('d.m.Y', $date);
-      $dateForDb = $dateObj ? $dateObj->format('Y-m-d') : $date;
+        if ($date && $employeeId) {
 
-      $pdo = new PDO('mysql:host=localhost;dbname=einteilungstool', 'root', '');
+          $dateObj = DateTime::createFromFormat('d.m.Y', $date);
+          $dateForDb = $dateObj ? $dateObj->format('Y-m-d') : $date;
 
-      $result = fetch_dbdata(
-        'roster',
-        'shift',
-        'ASC',
-        $pdo,
-        [
-          ['column' => 'date', 'operator' => '=', 'value' => $dateForDb],
-          ['column' => 'fk_staffId', 'operator' => '=', 'value' => $employeeId],
-          ['column' => 'is_active', 'operator' => '=', 'value' => true]
-        ],
-        'shift',
-        'on_call_day',
-        'on_call_night'
+          $pdo = new PDO('mysql:host=localhost;dbname=einteilungstool', 'root', '');
+
+          $result = fetch_dbdata(
+            'roster',
+            'shift',
+            'ASC',
+            $pdo,
+            [
+              ['column' => 'date', 'operator' => '=', 'value' => $dateForDb],
+              ['column' => 'fk_staffId', 'operator' => '=', 'value' => $employeeId],
+              ['column' => 'is_active', 'operator' => '=', 'value' => true]
+            ],
+            'shift',
+            'on_call_day',
+            'on_call_night'
+          );
+
+          if ($result && count($result) > 0) {
+            $currentShift = $result[0]['shift'];
+            $onCallDay = $result[0]['on_call_day'];
+            $onCallNight = $result[0]['on_call_night'];
+          }
+        }
+
+        echo json_encode([
+          'current_shift' => $currentShift,
+          'on_call_day_scheduled' => $onCallDay,
+          'on_call_night_scheduled' => $onCallNight,
+          'trigram' => $trigram
+        ]);
+        exit;
+      }
+
+
+
+
+    case 'changeShift':
+      $date = $input['date'] ?? null;
+      $currentShift = $input['current_shift'] ?? null;
+      $newShift = $input['new_shift'] ?? null;
+      $trigram = $input['employee_trigram'] ?? null;
+
+      if (!$date || !$currentShift || !$newShift || !$trigram) {
+        echo json_encode([
+          'success' => false,
+          'error' => 'Missing parameters',
+          'debug' => [
+            'date' => $date,
+            'currentShift' => $currentShift,
+            'newShift' => $newShift,
+            'trigram' => $trigram
+          ]
+        ]);
+        exit;
+      }
+
+      $result = change_shift(
+        $date,
+        $currentShift,
+        $newShift,
+        $trigram,
+        $login_data['access-token'],
+        $login_data['uid'],
+        $login_data['client'],
+        $pdo
       );
 
-      if ($result && count($result) > 0) {
-        $currentShift = $result[0]['shift'];
-        $onCallDay = $result[0]['on_call_day'];
-        $onCallNight = $result[0]['on_call_night'];
-      }
-    }
+      echo json_encode(['success' => $result ? true : false]);
 
-    echo json_encode([
-      'current_shift' => $currentShift,
-      'on_call_day_scheduled' => $onCallDay,
-      'on_call_night_scheduled' => $onCallNight,
-      'trigram' => $trigram
-    ]);
-    exit;
+      exit;
   }
 }
-
-
-
-//
 
 
 // Dienstplan abrufen
@@ -83,16 +137,7 @@ $planWeekday = $daysDE[$weekdayNumber];
 $planModDate = get_date('mod-date');
 
 
-$login = api_login();
-$login_json = json_encode($login);
-$login_headers = json_decode($login_json)->headers;
-$login_data = [
-  'access-token' => $login_headers->access_token,
-  'client' => $login_headers->client,
-  'uid' => $login_headers->uid,
-];
 
-$pdo = new PDO('mysql:host=localhost;dbname=einteilungstool', 'root', '');
 
 $staff = get_mitarbeiter($planDate, $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
 
@@ -129,9 +174,11 @@ $employee = fetch_dbdata('staff',  'lastname', 'ASC', $pdo, [], 'lastname', 'fir
 
 $shifts = fetch_dbdata('shiftTemplates',  'shift_symbol', 'ASC', $pdo, [], 'shift_id', 'shift_symbol');
 
-//add_dienst($planModDate, $_POST['shift'], $_POST['employee-trigram'], $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
+// change_shift($planModDate, $currentShift, $_POST['shift'], $_POST['employee-trigram'], $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
 
-delete_dienst($planModDate, $_POST['shift'], $_POST['employee-trigram'], $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
+// add_dienst($planModDate, $_POST['shift'], $_POST['employee-trigram'], $login_data['access-token'], $login_data['uid'], $login_data['client']);
+
+// delete_dienst($planModDate, $_POST['shift'], $_POST['employee-trigram'], $login_data['access-token'], $login_data['uid'], $login_data['client']);
 
 // TODO: Mail mit DP-Änderung auslösen
 

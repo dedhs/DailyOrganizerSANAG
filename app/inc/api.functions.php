@@ -369,7 +369,7 @@ function get_dienste($date, $token, $uid, $client, $pdo)
   ];
 }
 
-function add_dienst($date, $shift, $name, $token, $uid, $client, $pdo)
+function add_dienst($date, $shift, $name, $token, $uid, $client)
 {
   $url = API_CONFIG_URLS['base_url_planungsverlauf'];
   $ch = curl_init($url);
@@ -436,10 +436,12 @@ function add_dienst($date, $shift, $name, $token, $uid, $client, $pdo)
 
   curl_close($ch);
 
-  $data = json_decode($response);
-
-  var_dump($response);
-
+  $data = json_decode($response, true);
+  return [
+    'success' => true,
+    'api_response' => $data
+  ];
+  /*
   // TODO: Dienständerung in MySQL-DB schreiben! pdo für Testzwecke entfernt
 
   $fk_staffId = fetch_dbdata('staff', 'lastname', 'ASC', $pdo, [
@@ -457,9 +459,10 @@ function add_dienst($date, $shift, $name, $token, $uid, $client, $pdo)
     ':fk_staffId' => $fk_staffId[0]['id'],
     ':shift' => $shift
   ]);
+  */
 }
 
-function delete_dienst($date, $shift, $name, $token, $uid, $client, $pdo)
+function delete_dienst($date, $shift, $name, $token, $uid, $client)
 {
   $url = API_CONFIG_URLS['base_url_planungsverlauf'];
   $ch = curl_init($url);
@@ -515,10 +518,13 @@ function delete_dienst($date, $shift, $name, $token, $uid, $client, $pdo)
 
   curl_close($ch);
 
-  $data = json_decode($response);
+  $data = json_decode($response, true);
+  return [
+    'success' => true,
+    'api_response' => $data
+  ];
 
-  var_dump($response);
-
+  /*  
   // TODO: Dienständerung in MySQL-DB schreiben!
 
   $fk_staffId = fetch_dbdata('staff', 'lastname', 'ASC', $pdo, [
@@ -538,4 +544,5 @@ function delete_dienst($date, $shift, $name, $token, $uid, $client, $pdo)
     ':date' => $date,
     ':fk_staffId' => $fk_staffId[0]['id']
   ]);
+  */
 }

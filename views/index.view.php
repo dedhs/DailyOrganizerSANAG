@@ -160,8 +160,8 @@
       <p>Pikett Nacht: <span id="on-call-night-scheduled"><?= $data['on_call_night_scheduled'] ?? 'Kein Wert' ?></span></p>
 
 
-      <label for="shift">Zu besetzenden Dienst wählen:</label>
-      <select name="shift" id="shift">
+      <label for="new-shift">Zu besetzenden Dienst wählen:</label>
+      <select name="new-shift" id="new-shift">
         <option value="" selected disabled hidden>Dienst auswählen</option>
         <?php foreach ($data['shifts'] as $s): ?>
           <option value="<?= htmlspecialchars($s['shift_symbol']) ?>">
@@ -169,8 +169,11 @@
           </option>
         <?php endforeach; ?>
       </select>
-
-      <button type="submit">Absenden</button>
+      <select name="new-on-call[]" id="new-on-call" multiple size="2">
+        <option value="on-call-day">Pikett Tag</option>
+        <option value="on-call-night">Pikett Nacht</option>
+      </select>
+      <button id="change-shift" type="submit">Absenden</button>
     </form>
 
 
