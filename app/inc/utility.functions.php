@@ -1,9 +1,24 @@
 <?php
 
-function view($template, $data = [])
+// function view($template, $data = [])
+// {
+//   require APP_PATH . "views/layout.view.php";
+// }
+
+
+// function view($template, $data = [])
+// {
+//   $templateFile = $template;
+//   extract(['data' => $data, 'template' => $templateFile]);
+
+//   require APP_PATH . "views/layout.view.php";
+// }
+
+function view($html)
 {
-  require APP_PATH . "views/layout.view.php";
+  require APP_PATH . "views/layout.view.html";
 }
+
 
 function get_date($type)
 {

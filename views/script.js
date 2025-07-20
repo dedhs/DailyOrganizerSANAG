@@ -1,4 +1,5 @@
 flatpickr(".date-entry", {
+  locale: "de",
   dateFormat: "d.m.Y", // DD.MM.YYYY
   allowInput: true, // Manuelle Eingabe zulassen
 });

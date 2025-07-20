@@ -1,6 +1,13 @@
 <?php
 
 require_once 'app/app.php';
+require_once __DIR__ . '/vendor/autoload.php';
+
+use Twig\Loader\FilesystemLoader;
+use Twig\Environment;
+
+$loader = new FilesystemLoader(__DIR__ . '/views'); // Oder dein tatsächlicher Pfad
+$twig = new Environment($loader);
 
 
 $login = api_login();
@@ -153,9 +160,14 @@ $roster = get_dienste($planDate, $login_data['access-token'], $login_data['uid']
 $roster_table = match_dienste_mitarbeiter($planDate, $roster, $staff, $pdo);
 
 
-$shifts_ops = ['1', '2', '1WE'];
+$shifts_day = ['1', '2', '1kurz', '2kurz', '1 PR', '2 PR', '1WE', '1WE PR', 'PAS', '📞', '💻', 'O', 'N'];
+$shifts_ops = ['1', '2', '1kurz', '2kurz', '1 PR', '2 PR', '1WE', '1WE PR'];
 
 // TODO 1WE &PAS-Kürzel berücksichtigen
+
+$staff_day = array_filter($roster_table, function ($e) use ($shifts_day) {
+  return in_array($e['dienst'], $shifts_day);
+});
 
 $staff_ops = array_filter($roster_table, function ($e) use ($shifts_ops) {
   return in_array($e['dienst'], $shifts_ops);
@@ -195,7 +207,8 @@ $view_data = [
   'planWeekday' => $planWeekday,
   'planDate' => $date_formatted,
   'staff' => $staff,
-  'roster' => $staff_ops,
+  'roster' => $staff_day,
+  'op_staff' => $staff_ops,
   'night_shift' => $night_shift,
   'on_call_night' => $on_call_night,
   'on_call_day' => $on_call_day,
@@ -206,4 +219,26 @@ $view_data = [
   'shifts' => $shifts
 ];
 
-view('index', $view_data);
+$pdf_data = [
+  'datum' => 'Montag, 29.04.2025',
+  'tv' => 'Dr. Müller',
+  'spaetdienste' => 'Meier, Schulz',
+  'pikett' => 'Dr. Sommer',
+  'tel_pikett' => '031 123 45 67',
+  'nacht' => 'Dr. Winter',
+  'anmerkungen' => 'Rapport um 14:00 Uhr. Nachmeldungen beachten.',
+  'saele' => [
+    ['name' => 'Saal A', 'arzt' => 'Dr. Meier', 'pflege' => 'Frau Huber', 'ende' => '15:30'],
+    ['name' => 'Saal B', 'arzt' => 'Dr. Schulz', 'pflege' => 'Herr Frei', 'ende' => '16:00'],
+    ['name' => 'Saal C', 'arzt' => 'Dr. Hoffmann', 'pflege' => 'Frau Steiner', 'ende' => '14:45'],
+  ]
+];
+
+$template = $twig->load('index.view.php');
+$html = $template->render($view_data);
+
+
+//view('index', $view_data);
+view($html);
+
+echo $twig->render('index.html.twig', $view_data);

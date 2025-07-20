@@ -1,0 +1,114 @@
+{% extends "layout.html.twig" %}
+
+{% block content %}
+
+<form action="" method="post">
+  <label for="plan-date">Bitte Datum eingeben/auswählen:</label>
+  <input type="text" id="plan-date" class="date-entry" name="plan-date" placeholder="TT.MM.JJJJ">
+  <button type="submit">Absenden</button>
+</form>
+
+<h1>Tageseinteilung für {{ planWeekday }}, {{ planDate }}</h1>
+
+<section>
+  <div class="row">
+    <div class="col-12">
+      <table class="table table-striped">
+        <thead>
+          <th>Mitarbeiter-ID</th>
+          <th>Name, Vorname</th>
+          <th>Dienst</th>
+          <th>Pikett Tag</th>
+          <th>Pikett Nacht</th>
+        </thead>
+        <tbody>
+          {% for roster in roster %}
+          <tr>
+            <td>{{ roster.mitarbeiter_id }}</td>
+            <td>{{ roster.name }}</td>
+            <td>{{ roster.dienst }}</td>
+            <td>{{ roster.pikett_tag }}</td>
+            <td>{{ roster.pikett_nacht }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p>Nachtdienst:
+    {% for night in night_shift %}
+      {{ night.name }}
+    {% endfor %}
+  </p>
+  <p>Pikett Nacht:
+    {% for ocn in on_call_night %}
+      {{ ocn.name }}
+    {% endfor %}
+  </p>
+  <p>Pikett Tag:
+    {% for ocd in on_call_day %}
+      {{ ocd.name }}
+    {% endfor %}
+  </p>
+</section>
+
+<section>
+  <div class="task-section">
+    <div class="task-title">Saal A, B, C, D</div>
+    <div class="container-wrapper">
+      {% for saal in ['a', 'b', 'c', 'd'] %}
+      <div class="task-column">
+        <div class="task-title">Saal {{ saal|upper }}</div>
+        <div class="checkbox-container">
+          {% for staff in op_staff %}
+            <label class="checkbox"><input type="checkbox" name="op_{{ saal }}" value="staff_{{ saal }}"> {{ staff.name }}</label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<br>
+
+<form action="" method="post">
+  <label for="mod-date">Bitte Datum für die Dienständerung eingeben/auswählen:</label>
+  <input type="text" id="mod-date" class="date-entry" name="mod-date" placeholder="Datum auswählen">
+
+  <label for="employee">Mitarbeiter wählen:</label>
+  <select name="employee" id="employee">
+    <option value="" selected disabled hidden>Mitarbeiter auswählen</option>
+    {% for s in employee %}
+      <option value="{{ s.id }}" data-trigram="{{ s.trigram }}">
+        {{ s.lastname }}, {{ s.firstname }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <input type="hidden" id="employee-trigram" name="employee-trigram">
+
+  <p>aktueller Dienst: <span id="current-shift">{{ current_shift }}</span></p>
+  <p>Pikett Tag: <span id="on-call-day-scheduled">{{ on_call_day_scheduled }}</span></p>
+  <p>Pikett Nacht: <span id="on-call-night-scheduled">{{ on_call_night_scheduled }}</span></p>
+
+  <label for="new-shift">Zu besetzenden Dienst wählen:</label>
+  <select name="new-shift" id="new-shift">
+    <option value="" selected disabled hidden>Dienst auswählen</option>
+    {% for s in shifts %}
+      <option value="{{ s.shift_symbol }}">{{ s.shift_symbol }}</option>
+    {% endfor %}
+  </select>
+
+  <form id="new-on-call">
+    <label><input type="checkbox" name="new-on-call" value="new-on-call-day">Pikett Tag</label>
+    <label><input type="checkbox" name="new-on-call" value="new-on-call-night">Pikett Nacht</label>
+  </form>
+
+  <button id="change-shift" type="submit">Absenden</button>
+</form>
+
+{% endblock %}

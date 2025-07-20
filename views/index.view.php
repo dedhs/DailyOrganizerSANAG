@@ -7,6 +7,7 @@
   <title><?= $data['title'] ?></title>
   <link rel="stylesheet" href="views/styles.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css" />
 </head>
 
 <body>
@@ -97,8 +98,8 @@
         <div class="task-column">
           <div class="task-title">Saal A</div>
           <div class="checkbox-container">
-            <?php foreach ($data['roster'] as $roster): ?>
-              <label class="checkbox"><input type="checkbox" name="op_a" value="staff_a"> <?= $roster['name'] ?></label>
+            <?php foreach ($data['op_staff'] as $staff): ?>
+              <label class="checkbox"><input type="checkbox" name="op_a" value="staff_a"> <?= $staff['name'] ?></label>
             <?php endforeach ?>
           </div>
         </div>
@@ -106,8 +107,8 @@
         <div class="task-column">
           <div class="task-title">Saal B</div>
           <div class="checkbox-container">
-            <?php foreach ($data['roster'] as $roster): ?>
-              <label class="checkbox"><input type="checkbox" name="op_b" value="staff_b"> <?= $roster['name'] ?></label>
+            <?php foreach ($data['op_staff'] as $staff): ?>
+              <label class="checkbox"><input type="checkbox" name="op_b" value="staff_b"> <?= $staff['name'] ?></label>
             <?php endforeach ?>
           </div>
         </div>
@@ -115,8 +116,8 @@
         <div class="task-column">
           <div class="task-title">Saal C</div>
           <div class="checkbox-container">
-            <?php foreach ($data['roster'] as $roster): ?>
-              <label class="checkbox"><input type="checkbox" name="op_c" value="staff_c"> <?= $roster['name'] ?></label>
+            <?php foreach ($data['op_staff'] as $staff): ?>
+              <label class="checkbox"><input type="checkbox" name="op_c" value="staff_c"> <?= $staff['name'] ?></label>
             <?php endforeach ?>
           </div>
         </div>
@@ -124,8 +125,8 @@
         <div class="task-column">
           <div class="task-title">Saal D</div>
           <div class="checkbox-container">
-            <?php foreach ($data['roster'] as $roster): ?>
-              <label class="checkbox"><input type="checkbox" name="op_d" value="staff_d"> <?= $roster['name'] ?></label>
+            <?php foreach ($data['op_staff'] as $staff): ?>
+              <label class="checkbox"><input type="checkbox" name="op_d" value="staff_d"> <?= $staff['name'] ?></label>
             <?php endforeach ?>
           </div>
         </div>
@@ -188,6 +189,7 @@
 
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/de.js"></script>
   <script src="views/script.js"></script>
 
 
