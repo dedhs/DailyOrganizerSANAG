@@ -1,13 +1,46 @@
 <?php
 
 require_once 'app/app.php';
-require_once __DIR__ . '/vendor/autoload.php';
 
 use Twig\Loader\FilesystemLoader;
 use Twig\Environment;
 
-$loader = new FilesystemLoader(__DIR__ . '/views'); // Oder dein tatsächlicher Pfad
+$loader = new FilesystemLoader(APP_PATH . 'views');
 $twig = new Environment($loader);
+
+$pdo = new PDO('mysql:host=127.0.0.1;port=3307;dbname=einteilungstool', 'root', 'root');
+
+$planDate = get_date('plan-date');
+$planModDate = get_date('mod-date');
+
+$date = new DateTime($planDate);
+$date_formatted = $date->format('d.m.Y');
+$weekdayNumber = $date->format('N');
+
+$daysDE = [
+  1 => 'Montag',
+  2 => 'Dienstag',
+  3 => 'Mittwoch',
+  4 => 'Donnerstag',
+  5 => 'Freitag',
+  6 => 'Samstag',
+  7 => 'Sonntag'
+];
+
+$planWeekday = $daysDE[$weekdayNumber];
+
+
+// Checking for existing plan for selected date
+$existingPlan = null;
+
+$dateObj = $date;
+$planDateDb = $dateObj ? $dateObj->format('Y-m-d') : null;
+
+if ($planDateDb) {
+  $stmt = $pdo->prepare("SELECT * FROM dailyOrganizer WHERE date = :date");
+  $stmt->execute([':date' => $planDateDb]);
+  $existingPlan = $stmt->fetch(PDO::FETCH_ASSOC);
+}
 
 
 $login = api_login();
@@ -19,22 +52,26 @@ $login_data = [
   'uid' => $login_headers->uid,
 ];
 
-$pdo = new PDO('mysql:host=localhost;dbname=einteilungstool', 'root', '');
-
 
 
 $currentShift = 'kein Dienst bzw. Dienstplan noch nicht freigegeben';
 $onCallDay = '-';
 $onCallNight = '-';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (
+  $_SERVER['REQUEST_METHOD'] === 'POST' &&
+  isset($_SERVER['CONTENT_TYPE']) &&
+  str_contains($_SERVER['CONTENT_TYPE'], 'application/json')
+) {
   // Prüfe: Kommt es von deinem JS?
   $input = json_decode(file_get_contents('php://input'), true);
 
   $action = $input['action'] ?? null;
 
   switch ($action) {
+
     case 'displayCurrentShift':
+
       if (isset($input['ajax']) && $input['ajax'] === true) {
         header('Content-Type: application/json');
 
@@ -47,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $dateObj = DateTime::createFromFormat('d.m.Y', $date);
           $dateForDb = $dateObj ? $dateObj->format('Y-m-d') : $date;
 
-          $pdo = new PDO('mysql:host=localhost;dbname=einteilungstool', 'root', '');
+          //$pdo = new PDO('mysql:host=localhost;dbname=einteilungstool', 'root', '');
 
           $result = fetch_dbdata(
             'roster',
@@ -80,9 +117,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
       }
 
-
-
-
     case 'changeShift':
       $date = $input['date'] ?? null;
       $currentShift = $input['current_shift'] ?? null;
@@ -90,7 +124,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $currentOnCall = $input['current_on_call'] ?? null;
       $newOnCall = $input['new_on_call'] ?? null;
       $trigram = $input['employee_trigram'] ?? null;
-
 
       if (!$date || !$currentShift || !$newShift || !$trigram) {
         echo json_encode([
@@ -105,6 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'trigram' => $trigram
           ]
         ]);
+
         exit;
       }
 
@@ -124,32 +158,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       echo json_encode(['success' => $result ? true : false]);
 
       exit;
+
+    case 'savePlanning':
+
+      $stmt = $pdo->prepare("
+        INSERT INTO dailyOrganizer (
+          date, op_doctors, doctor_tv, on_call_night, night_shift
+          ) 
+        VALUES (
+          :date, :op_doctors, :doctor_tv, :on_call_night, :night_shift
+          )
+        ON DUPLICATE KEY UPDATE
+          op_doctors = VALUES(op_doctors),
+          doctor_tv = VALUES(doctor_tv),
+          on_call_night = VALUES(on_call_night),
+          night_shift = VALUES(night_shift);
+        ");
+
+      try {
+        $stmt->execute([
+          ':date' => $input['date'],
+          ':op_doctors' => json_encode($input['opDoctors']),
+          ':doctor_tv' => $input['doctorTv'],
+          ':on_call_night' => json_encode($input['onCallNight']),
+          ':night_shift' => json_encode($input['nightShift'])
+        ]);
+
+        echo json_encode(['success' => true]);
+        exit;
+      } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        exit;
+      }
   }
 }
-
-
-// Dienstplan abrufen
-$planDate = get_date('plan-date');
-
-$date = new DateTime($planDate);
-$date_formatted = $date->format('d.m.Y');
-$weekdayNumber = $date->format('N');
-
-$daysDE = [
-  1 => 'Montag',
-  2 => 'Dienstag',
-  3 => 'Mittwoch',
-  4 => 'Donnerstag',
-  5 => 'Freitag',
-  6 => 'Samstag',
-  7 => 'Sonntag'
-];
-
-$planWeekday = $daysDE[$weekdayNumber];
-
-// Add/Delete Dienste
-$planModDate = get_date('mod-date');
-
 
 
 
@@ -159,11 +201,8 @@ $roster = get_dienste($planDate, $login_data['access-token'], $login_data['uid']
 
 $roster_table = match_dienste_mitarbeiter($planDate, $roster, $staff, $pdo);
 
-
-$shifts_day = ['1', '2', '1kurz', '2kurz', '1 PR', '2 PR', '1WE', '1WE PR', 'PAS', '📞', '💻', 'O', 'N'];
-$shifts_ops = ['1', '2', '1kurz', '2kurz', '1 PR', '2 PR', '1WE', '1WE PR'];
-
-// TODO 1WE &PAS-Kürzel berücksichtigen
+$shifts_day = ['1', '2', '1kurz', '2kurz', '1 PR', '2 PR', '1WE', '1WE PR', 'PAS', 'E', '📞', '💻', 'O', 'N'];
+$shifts_ops = ['1', '2', '1kurz', '2kurz', '1 PR', '2 PR', '1WE', '1WE PR', 'E'];
 
 $staff_day = array_filter($roster_table, function ($e) use ($shifts_day) {
   return in_array($e['dienst'], $shifts_day);
@@ -177,6 +216,7 @@ $staff_ops = array_values($staff_ops);
 $night_shift = array_filter($roster_table, function ($e) {
   return in_array($e['dienst'], ['N']);
 });
+
 $on_call_night = array_filter($roster_table, function ($e) {
   return $e['pikett_nacht'];
 });
@@ -185,22 +225,22 @@ $on_call_day = array_filter($roster_table, function ($e) {
   return $e['pikett_tag'];
 });
 
-
-
 get_dienstvorlagen($login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
 
 $employee = fetch_dbdata('staff',  'lastname', 'ASC', $pdo, [], 'lastname', 'firstname', 'trigram', 'id');
 
 $shifts = fetch_dbdata('shiftTemplates',  'shift_symbol', 'ASC', $pdo, [], 'shift_id', 'shift_symbol');
 
-// change_shift($planModDate, $currentShift, $_POST['shift'], $_POST['employee-trigram'], $login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
-
-// add_dienst($planModDate, $_POST['shift'], $_POST['employee-trigram'], $login_data['access-token'], $login_data['uid'], $login_data['client']);
-
-// delete_dienst($planModDate, $_POST['shift'], $_POST['employee-trigram'], $login_data['access-token'], $login_data['uid'], $login_data['client']);
 
 // TODO: Mail mit DP-Änderung auslösen
 
+
+if ($existingPlan) {
+  // Falls z. B. als JSON gespeichert – wieder in Arrays umwandeln
+  $existingPlan['op_doctors'] = json_decode($existingPlan['op_doctors'], true);
+  //$existingPlan['on_call_night'] = json_decode($existingPlan['on_call_night'], true);
+  //$existingPlan['night_shift'] = json_decode($existingPlan['night_shift'], true);
+}
 
 $view_data = [
   'title' => 'Tageseinteilung',
@@ -216,29 +256,11 @@ $view_data = [
   'current_shift' => 'Datum/Mitarbeiter noch nicht ausgewählt',
   'on_call_day_scheduled' => '',
   'on_call_night_scheduled' => '',
-  'shifts' => $shifts
+  'shifts' => $shifts,
+  'existingPlan' => $existingPlan
 ];
 
-$pdf_data = [
-  'datum' => 'Montag, 29.04.2025',
-  'tv' => 'Dr. Müller',
-  'spaetdienste' => 'Meier, Schulz',
-  'pikett' => 'Dr. Sommer',
-  'tel_pikett' => '031 123 45 67',
-  'nacht' => 'Dr. Winter',
-  'anmerkungen' => 'Rapport um 14:00 Uhr. Nachmeldungen beachten.',
-  'saele' => [
-    ['name' => 'Saal A', 'arzt' => 'Dr. Meier', 'pflege' => 'Frau Huber', 'ende' => '15:30'],
-    ['name' => 'Saal B', 'arzt' => 'Dr. Schulz', 'pflege' => 'Herr Frei', 'ende' => '16:00'],
-    ['name' => 'Saal C', 'arzt' => 'Dr. Hoffmann', 'pflege' => 'Frau Steiner', 'ende' => '14:45'],
-  ]
-];
-
-$template = $twig->load('index.view.php');
+$template = $twig->load('index.view.twig');
 $html = $template->render($view_data);
 
-
-//view('index', $view_data);
-view($html);
-
-echo $twig->render('index.html.twig', $view_data);
+echo $twig->render('index.view.twig', $view_data);

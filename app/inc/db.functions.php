@@ -190,3 +190,19 @@ function change_shift($date, $current_shift, $new_shift, $current_on_call, $new_
     ];
   }
 }
+function get_names_by_ids(array $ids, PDO $pdo): array
+{
+  $ids = array_filter($ids); // Leere Werte raus
+
+  if (empty($ids)) return [];
+
+  $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+  $sql = "SELECT id, CONCAT(lastname, ', ', firstname) AS name FROM staff WHERE id IN ($placeholders)";
+  $stmt = $pdo->prepare($sql);
+
+  // Stelle sicher, dass numerische Indexierung passt
+  $stmt->execute(array_values($ids));
+
+  return $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+}

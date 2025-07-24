@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<style>
+			body {
+				font-family: sans-serif;
+				font-size: 10pt;
+			}
+			h1 {
+				font-size: 16pt;
+			}
+			table {
+				border-collapse: collapse;
+				width: 100%;
+				margin-top: 15px;
+			}
+			th,
+			td {
+				border: 1px solid #aaa;
+				padding: 6px;
+				text-align: left;
+			}
+			.section {
+				margin-top: 20px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Einteilung für
+			{{ datum }}</h1>
+
+		<div class="section">
+			<p>
+				<strong>Koordination:</strong>
+				{{ tv }}</p>
+			<p>
+				<strong>Spätdienste:</strong>
+				{{ spaetdienste }}</p>
+			<p>
+				<strong>Pikett:</strong>
+				{{ pikett }}
+				({{ tel_pikett }})</p>
+			<p>
+				<strong>Nacht:</strong>
+				{{ nacht }}</p>
+		</div>
+
+		<div class="section">
+			<h2>OP-Säle</h2>
+			<table>
+				<tr>
+					<th>Saal</th>
+					<th>Arzt</th>
+					<th>Pfleger:in</th>
+					<th>Ende</th>
+				</tr>
+				{% for saal in saele %}
+					<tr>
+						<td>{{ saal.name }}</td>
+						<td>{{ saal.arzt }}</td>
+						<td>{{ saal.pflege }}</td>
+						<td>{{ saal.ende }}</td>
+					</tr>
+				{% endfor %}
+			</table>
+		</div>
+
+		<div class="section">
+			<p>
+				<strong>Anmerkungen:</strong>
+			</p>
+			<p>{{ anmerkungen }}</p>
+		</div>
+	</body>
+</html>
