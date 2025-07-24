@@ -64,12 +64,11 @@ document
 
 document
   .querySelector('[name="save-changes"]')
-  .addEventListener("click", () => {
-    const groupedSelection = {};
-
+  .addEventListener("click", function(e) {
+    e.preventDefault();
     const opDoctors = {};
     document.querySelectorAll(".op-checkbox:checked").forEach(cb => {
-      const saal = cb.dataset.saal; // z. B. 'a', 'b', ...
+      const saal = cb.dataset.saal;
       if (!opDoctors[saal]) opDoctors[saal] = [];
       opDoctors[saal].push(cb.value);
     });
