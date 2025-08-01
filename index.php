@@ -8,27 +8,12 @@ use Twig\Environment;
 $loader = new FilesystemLoader(APP_PATH . 'views');
 $twig = new Environment($loader);
 
-$pdo = new PDO('mysql:host=127.0.0.1;port=3307;dbname=einteilungstool', 'root', 'root');
+$pdo = new PDO(DB_CONFIG_DATA['dsn'], DB_CONFIG_DATA['username'], DB_CONFIG_DATA['password']);
+
 
 $planDate = get_date('plan-date');
 $planModDate = get_date('mod-date');
-
 $date = new DateTime($planDate);
-$date_formatted = $date->format('d.m.Y');
-$weekdayNumber = $date->format('N');
-
-$daysDE = [
-  1 => 'Montag',
-  2 => 'Dienstag',
-  3 => 'Mittwoch',
-  4 => 'Donnerstag',
-  5 => 'Freitag',
-  6 => 'Samstag',
-  7 => 'Sonntag'
-];
-
-$planWeekday = $daysDE[$weekdayNumber];
-
 
 // Checking for existing plan for selected date
 $existingPlan = null;
@@ -117,6 +102,7 @@ if (
         exit;
       }
 
+
     case 'changeShift':
       $date = $input['date'] ?? null;
       $currentShift = $input['current_shift'] ?? null;
@@ -159,19 +145,24 @@ if (
 
       exit;
 
+
     case 'savePlanning':
 
       $stmt = $pdo->prepare("
         INSERT INTO dailyOrganizer (
-          date, op_doctors, doctor_tv, on_call_night, night_shift
+          date, op_doctors, doctor_tv, pas_morning, pas_afternoon, pain, on_call_night, late_shift, night_shift
           ) 
         VALUES (
-          :date, :op_doctors, :doctor_tv, :on_call_night, :night_shift
+          :date, :op_doctors, :doctor_tv, :pas_morning, :pas_afternoon, :pain, :on_call_night, :late_shift, :night_shift
           )
         ON DUPLICATE KEY UPDATE
           op_doctors = VALUES(op_doctors),
           doctor_tv = VALUES(doctor_tv),
+          pas_morning = VALUES(pas_morning),
+          pas_afternoon = VALUES(pas_afternoon),
+          pain = VALUES(pain),
           on_call_night = VALUES(on_call_night),
+          late_shift = VALUES(late_shift);
           night_shift = VALUES(night_shift);
         ");
 
@@ -180,7 +171,11 @@ if (
           ':date' => $input['date'],
           ':op_doctors' => json_encode($input['opDoctors']),
           ':doctor_tv' => $input['doctorTv'],
+          ':pas_morning' => json_encode($input['pasMorning']),
+          ':pas_afternoon' => json_encode($input['pasAfternoon']),
+          ':pain' => json_encode($input['pain']),
           ':on_call_night' => json_encode($input['onCallNight']),
+          ':late_shift' => json_encode($input['lateShift']),
           ':night_shift' => json_encode($input['nightShift'])
         ]);
 
@@ -213,6 +208,10 @@ $staff_ops = array_filter($roster_table, function ($e) use ($shifts_ops) {
 });
 $staff_ops = array_values($staff_ops);
 
+$late_shift = array_filter($roster_table, function ($e) {
+  return in_array($e['dienst'], ['2']);
+});
+
 $night_shift = array_filter($roster_table, function ($e) {
   return in_array($e['dienst'], ['N']);
 });
@@ -236,19 +235,18 @@ $shifts = fetch_dbdata('shiftTemplates',  'shift_symbol', 'ASC', $pdo, [], 'shif
 
 
 if ($existingPlan) {
-  // Falls z. B. als JSON gespeichert – wieder in Arrays umwandeln
   $existingPlan['op_doctors'] = json_decode($existingPlan['op_doctors'], true);
-  //$existingPlan['on_call_night'] = json_decode($existingPlan['on_call_night'], true);
-  //$existingPlan['night_shift'] = json_decode($existingPlan['night_shift'], true);
 }
+
 
 $view_data = [
   'title' => 'Tageseinteilung',
-  'planWeekday' => $planWeekday,
-  'planDate' => $date_formatted,
+  'planWeekday' => get_german_weekday($planDate),
+  'planDate' => $date->format('d.m.Y'),
   'staff' => $staff,
   'roster' => $staff_day,
   'op_staff' => $staff_ops,
+  'late_shift' => $late_shift,
   'night_shift' => $night_shift,
   'on_call_night' => $on_call_night,
   'on_call_day' => $on_call_day,
@@ -261,6 +259,5 @@ $view_data = [
 ];
 
 $template = $twig->load('index.view.twig');
-$html = $template->render($view_data);
 
 echo $twig->render('index.view.twig', $view_data);

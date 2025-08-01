@@ -50,6 +50,16 @@
 				{% endif %}
 			{% endfor %}
 		</p>
+		<p>Spätdienste:
+			{% for late in late_shift %}
+				<span class="late-shift" data-id="{{ late.mitarbeiter_id }}">
+					{{ late.name }}
+				</span>
+				{% if not loop.last %}
+					·
+				{% endif %}
+			{% endfor %}
+		</p>
 		<p>Pikett Nacht:
 			{% for ocn in on_call_night %}
 				<span class="on-call-night" data-id="{{ ocn.mitarbeiter_id }}">
@@ -97,86 +107,106 @@
 
 	<section>
 		<div class="task-section">
-			<div class="task-title">Saal A, B, C, D, E, F, G, Endo</div>
+			<div class="task-title">PAS Dienste</div>
 			<div class="container-wrapper">
-				{% for saal in ['a', 'b', 'c', 'd'] %}
-					<div class="task-column">
-						<div class="task-title">Saal
-							{{ saal|upper }}</div>
-						<div class="checkbox-container">
-							{% for staff in op_staff %}
-								<label class="checkbox">
-									<input type="checkbox" class="op-checkbox" name="op_{{ saal }}[]" value="{{ staff.mitarbeiter_id }}" data-saal="{{ saal }}" {% if existingPlan and existingPlan.op_doctors is defined and staff.mitarbeiter_id in existingPlan.op_doctors[saal] %} checked {% endif %}>
-									{{ staff.name }}
-								</label>
-							{% endfor %}
-						</div>
+				<div class="task-column">
+					<div class="task-title">PAS Vormittag</div>
+					<div class="checkbox-container">
+						{% for staff in op_staff %}
+							<label class="checkbox">
+								<input type="checkbox" class="pas-checkbox" name="pas-morning[]" value="{{ staff.mitarbeiter_id }}" {% if existingPlan and existingPlan.op_doctors is defined and staff.mitarbeiter_id in existingPlan.pas_morning %} checked {% endif %}>
+								{{ staff.name }}
+							</label>
+						{% endfor %}
 					</div>
+				</div>
+				<div class="task-column">
+					<div class="task-title">PAS Nachmittag</div>
+					<div class="checkbox-container">
+						{% for staff in op_staff %}
+							<label class="checkbox">
+								<input type="checkbox" class="pas-checkbox" name="pas-afternoon[]" value="{{ staff.mitarbeiter_id }}" {% if existingPlan and existingPlan.op_doctors is defined and staff.mitarbeiter_id in existingPlan.pas_afternoon %} checked {% endif %}>
+								{{ staff.name }}
+							</label>
+						{% endfor %}
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="task-column">
+			<div class="task-title">Pain</div>
+			<div class="checkbox-container">
+				{% for staff in op_staff %}
+					<label class="checkbox">
+						<input type="checkbox" class="pain-checkbox" name="pain[]" value="{{ staff.mitarbeiter_id }}" {% if existingPlan and existingPlan.op_doctors is defined and staff.mitarbeiter_id in existingPlan.pain %} checked {% endif %}>
+						{{ staff.name }}
+					</label>
 				{% endfor %}
 			</div>
 		</div>
-	</section>
+	</div>
+</div></section><section>
+<div class="task-section">
+	<div class="task-title">Saal A, B, C, D, E, F, G, Endo</div>
+	<div class="container-wrapper">
+		{% for saal in ['a', 'b', 'c', 'd'] %}
+			<div class="task-column">
+				<div class="task-title">Saal
+					{{ saal|upper }}</div>
+				<div class="checkbox-container">
+					{% for staff in op_staff %}
+						<label class="checkbox">
+							<input type="checkbox" class="op-checkbox" name="op_{{ saal }}[]" value="{{ staff.mitarbeiter_id }}" data-saal="{{ saal }}" {% if existingPlan and existingPlan.op_doctors is defined and staff.mitarbeiter_id in existingPlan.op_doctors[saal] %} checked {% endif %}>
+							{{ staff.name }}
+						</label>
+					{% endfor %}
+				</div>
+			</div>
+		{% endfor %}
+	</div>
+</div></section><br><br><form action="" method="post">
+<label for="mod-date">Bitte Datum für die Dienständerung eingeben/auswählen:</label>
+<input type="text" id="mod-date" class="date-entry" name="mod-date" placeholder="Datum auswählen">
 
+<label for="employee">Mitarbeiter wählen:</label>
+<select name="employee" id="employee">
+	<option value="" selected disabled hidden>Mitarbeiter auswählen</option>
+	{% for s in employee %}
+		<option value="{{ s.id }}" data-trigram="{{ s.trigram }}">
+			{{ s.lastname }},
+			{{ s.firstname }}
+		</option>
+	{% endfor %}
+</select>
 
-	<br>
-	<br>
+<input type="hidden" id="employee-trigram" name="employee-trigram">
 
+<p>aktueller Dienst:
+	<span id="current-shift">{{ current_shift }}</span>
+</p>
+<p>Pikett Tag:
+	<span id="on-call-day-scheduled">{{ on_call_day_scheduled }}</span>
+</p>
+<p>Pikett Nacht:
+	<span id="on-call-night-scheduled">{{ on_call_night_scheduled }}</span>
+</p>
 
-	<form action="" method="post">
-		<label for="mod-date">Bitte Datum für die Dienständerung eingeben/auswählen:</label>
-		<input type="text" id="mod-date" class="date-entry" name="mod-date" placeholder="Datum auswählen">
+<label for="new-shift">Zu besetzenden Dienst wählen:</label>
+<select name="new-shift" id="new-shift">
+	<option value="" selected disabled hidden>Dienst auswählen</option>
+	{% for s in shifts %}
+		<option value="{{ s.shift_symbol }}">{{ s.shift_symbol }}</option>
+	{% endfor %}
+</select>
 
-		<label for="employee">Mitarbeiter wählen:</label>
-		<select name="employee" id="employee">
-			<option value="" selected disabled hidden>Mitarbeiter auswählen</option>
-			{% for s in employee %}
-				<option value="{{ s.id }}" data-trigram="{{ s.trigram }}">
-					{{ s.lastname }},
-					{{ s.firstname }}
-				</option>
-			{% endfor %}
-		</select>
+<form id="new-on-call">
+	<label><input type="checkbox" name="new-on-call" value="new-on-call-day">Pikett Tag</label>
+	<label><input type="checkbox" name="new-on-call" value="new-on-call-night">Pikett Nacht</label>
+</form>
 
-		<input type="hidden" id="employee-trigram" name="employee-trigram">
+<button id="change-shift" type="submit">Absenden</button></form><form>
+<button type="submit" name="save-changes">Änderungen speichern</button></form><form method="post" action="/Einteilungstool/pdf/schedule.pdf.php" target="_blank">
 
-		<p>aktueller Dienst:
-			<span id="current-shift">{{ current_shift }}</span>
-		</p>
-		<p>Pikett Tag:
-			<span id="on-call-day-scheduled">{{ on_call_day_scheduled }}</span>
-		</p>
-		<p>Pikett Nacht:
-			<span id="on-call-night-scheduled">{{ on_call_night_scheduled }}</span>
-		</p>
+<input type="hidden" name="plan-date" value="{{ planDate|date("Y-m-d") }}">
 
-		<label for="new-shift">Zu besetzenden Dienst wählen:</label>
-		<select name="new-shift" id="new-shift">
-			<option value="" selected disabled hidden>Dienst auswählen</option>
-			{% for s in shifts %}
-				<option value="{{ s.shift_symbol }}">{{ s.shift_symbol }}</option>
-			{% endfor %}
-		</select>
-
-		<form id="new-on-call">
-			<label><input type="checkbox" name="new-on-call" value="new-on-call-day">Pikett Tag</label>
-			<label><input type="checkbox" name="new-on-call" value="new-on-call-night">Pikett Nacht</label>
-		</form>
-
-		<button id="change-shift" type="submit">Absenden</button>
-	</form>
-
-	<form>
-		<button type="submit" name="save-changes">Änderungen speichern</button>
-	</form>
-
-
-	<form method="post" action="/Einteilungstool/pdf/schedule.pdf.php" target="_blank">
-
-		<input type="hidden" name="plan-date" value="{{ planDate|date("Y-m-d") }}">
-
-		<button type="submit">PDF erzeugen</button>
-
-	</form>
-
-
-{% endblock %}
+<button type="submit">PDF erzeugen</button></form>{% endblock %}

@@ -22,3 +22,21 @@ function get_date($type)
   }
   return null; // Wenn nichts da ist oder ungültig
 }
+
+function get_german_weekday($date)
+{
+  $date = new DateTime($date);
+  $weekdayNumber = $date->format('N');
+
+  $daysDE = [
+    1 => 'Montag',
+    2 => 'Dienstag',
+    3 => 'Mittwoch',
+    4 => 'Donnerstag',
+    5 => 'Freitag',
+    6 => 'Samstag',
+    7 => 'Sonntag'
+  ];
+
+  return $daysDE[$weekdayNumber];
+}

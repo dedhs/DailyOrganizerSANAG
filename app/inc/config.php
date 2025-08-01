@@ -15,3 +15,9 @@ const API_CONFIG_URLS = [
   'base_url_get_dienste' => 'https://api.planik.ch/api/v1/dienste?filter[mandant_id]=' . API_CONFIG_DATA['team_id'] . '&filter[zwischen]=',
   'base_url_planungsverlauf' => 'https://api.planik.ch/api/v1/planungsverlauf/' . API_CONFIG_DATA['team_id']
 ];
+
+const DB_CONFIG_DATA = [
+  'dsn' => 'mysql:host=127.0.0.1;port=3307;dbname=sanag',
+  'username' => 'root',
+  'password' => 'root'
+];

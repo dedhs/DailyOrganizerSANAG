@@ -21,6 +21,32 @@
 				padding: 6px;
 				text-align: left;
 			}
+			table.saal-tabelle {
+				width: 100%;
+				table-layout: fixed;
+				border-collapse: separate;
+				border-spacing: 5mm 5mm;
+				margin-bottom: 20px;
+			}
+
+			table.saal-tabelle td {
+				width: 25%;
+				height: 40mm;
+				border: 1px solid #000;
+				vertical-align: top;
+				text-align: center;
+				padding: 5px;
+				box-sizing: border-box;
+			}
+
+			.saal-label {
+				font-weight: bold;
+				display: block;
+				margin-bottom: 2px;
+				margin-top: 0;
+			}
+
+
 			.section {
 				margin-top: 20px;
 			}
@@ -35,8 +61,17 @@
 				<strong>Koordination:</strong>
 				{{ tv }}</p>
 			<p>
+				<strong>PAS Vormittag:</strong>
+				{{ pas_morning }}</p>
+			<p>
+				<strong>PAS Nachmittag:</strong>
+				{{ pas_afternoon }}</p>
+			<p>
+				<strong>Pain:</strong>
+				{{ pain }}</p>
+			<p>
 				<strong>Spätdienste:</strong>
-				{{ spaetdienste }}</p>
+				{{ late_shift }}</p>
 			<p>
 				<strong>Pikett:</strong>
 				{{ pikett }}
@@ -66,6 +101,30 @@
 			</table>
 		</div>
 
+		<!-- BAUSTELLE AB HIER -->
+
+		<table class="saal-tabelle">
+			<tr>
+				{% for saal in saele|slice(0, 3) %}
+					<td>
+						<span class="saal-label">{{ saal.name }}</span>
+						<br><br>
+						{{ saal.arzt }}
+					</td>
+				{% endfor %}
+			</tr>
+			<tr>
+				{% for saal in saele|slice(4, 4) %}
+					<td>
+						<span class="saal-label">{{ saal.name }}</span>
+						{{ saal.person }}
+					</td>
+				{% endfor %}
+			</tr>
+		</table>
+
+		<!-- BAUSTELLE ENDE -->
+
 		<div class="section">
 			<p>
 				<strong>Anmerkungen:</strong>
@@ -73,4 +132,4 @@
 			<p>{{ anmerkungen }}</p>
 		</div>
 	</body>
-</html>
+</html></body></html></body></html>

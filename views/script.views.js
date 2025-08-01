@@ -85,14 +85,40 @@ document
       el => el.dataset.id
     );
 
+    // BAUSTELLE
+    const lateShiftIds = [...document.querySelectorAll(".late-shift")].map(
+      el => el.dataset.id
+    );
+
+    const doctorTv = document.querySelector("#doctor-tv:checked").value;
+
+    const pasMorning = Array.from(
+      document.querySelectorAll('input[name="pas-morning[]"]:checked')
+    ).map(cb => cb.value);
+
+    // Nachmittag
+    const pasAfternoon = Array.from(
+      document.querySelectorAll('input[name="pas-afternoon[]"]:checked')
+    ).map(cb => cb.value);
+
+    const pain = Array.from(
+      document.querySelectorAll('input[name="pain[]"]:checked')
+    ).map(cb => cb.value);
+
+    // BAUSTELLE ENDE
+
     const payload = {
       action: "savePlanning",
       date: storedDateYmd,
       nightShift: nightShiftIds,
       onCallNight: onCallNightIds,
       onCallDay: onCallDayIds,
+      lateShift: lateShiftIds,
+      pain: pain,
       opDoctors: opDoctors,
-      doctorTv: document.querySelector("#doctor-tv:checked").value
+      doctorTv: doctorTv,
+      pasMorning: pasMorning,
+      pasAfternoon: pasAfternoon
     };
 
     fetch("index.php", {

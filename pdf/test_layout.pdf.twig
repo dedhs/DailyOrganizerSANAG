@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="de">
+	<head>
+		<meta charset="UTF-8">
+		<style>
+			body {
+				font-family: sans-serif;
+				font-size: 10pt;
+			}
+
+			h1 {
+				text-align: center;
+				font-size: 14pt;
+				margin-bottom: 15px;
+			}
+
+			table.saal-tabelle {
+				width: 100%;
+				table-layout: fixed;
+				border-collapse: separate;
+				border-spacing: 5mm 5mm;
+				margin-bottom: 20px;
+			}
+
+			table.saal-tabelle td {
+				width: 25%;
+				height: 40mm;
+				border: 1px solid #000;
+				vertical-align: middle;
+				text-align: center;
+				padding: 5px;
+			}
+
+			.saal-label {
+				font-weight: bold;
+				display: block;
+				margin-bottom: 2px;
+				margin-top: 0;
+			}
+
+			.footer {
+				text-align: right;
+				font-size: 8pt;
+				margin-top: 20mm;
+			}
+		</style>
+	</head>
+	<body>
+
+		<h1>Einteilung Ärzte für
+			{{ date }}</h1>
+
+
+		<br>
+		<br>
+
+
+		<table class="saal-tabelle">
+			<tr>
+				{% for saal in saele|slice(0, 3) %}
+					<td>
+						<span class="saal-label">{{ saal.name }}</span>
+						{{ saal.person }}
+					</td>
+				{% endfor %}
+			</tr>
+			<tr>
+				{% for saal in saele|slice(4, 4) %}
+					<td>
+						<span class="saal-label">{{ saal.name }}</span>
+						{{ saal.person }}
+					</td>
+				{% endfor %}
+			</tr>
+		</table>
+
+
+		<div style="position: absolute; left: 155mm; top: 35mm; width: 40mm; height: 35mm; border: 1px solid #000;">
+
+			<span>
+				<strong>Saal D</strong>
+			</span>
+			Kalbermatter, R.
+
+		</div>
+
+
+		<div class="footer">© Stefan Haupt 2025</div>
+
+	</body>
+</html>

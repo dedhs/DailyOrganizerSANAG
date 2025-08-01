@@ -49,6 +49,7 @@ function match_dienste_mitarbeiter($date, $roster, $staff, $pdo)
 
 function fetch_dbdata($table, $sort_by_value, $sort_order, $pdo, array $where = [], ...$values)
 {
+  //TODO: Funktion, die prüft, ob values=Spalten in DB exisitieren
   $columns = implode(',', $values);
 
   $whereClauses = [];
