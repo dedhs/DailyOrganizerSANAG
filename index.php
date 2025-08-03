@@ -150,14 +150,15 @@ if (
 
       $stmt = $pdo->prepare("
         INSERT INTO dailyOrganizer (
-          date, op_doctors, doctor_tv, pas_morning, pas_afternoon, pain, on_call_night, late_shift, night_shift
+          date, op_doctors, doctor_tv, op_nurses, pas_morning, pas_afternoon, pain, on_call_night, late_shift, night_shift
           ) 
         VALUES (
-          :date, :op_doctors, :doctor_tv, :pas_morning, :pas_afternoon, :pain, :on_call_night, :late_shift, :night_shift
+          :date, :op_doctors, :doctor_tv, :op_nurses, :pas_morning, :pas_afternoon, :pain, :on_call_night, :late_shift, :night_shift
           )
         ON DUPLICATE KEY UPDATE
           op_doctors = VALUES(op_doctors),
           doctor_tv = VALUES(doctor_tv),
+          op_nurses = VALUES(op_nurses),
           pas_morning = VALUES(pas_morning),
           pas_afternoon = VALUES(pas_afternoon),
           pain = VALUES(pain),
@@ -171,6 +172,7 @@ if (
           ':date' => $input['date'],
           ':op_doctors' => json_encode($input['opDoctors']),
           ':doctor_tv' => $input['doctorTv'],
+          ':op_nurses' => json_encode($input['opNurses']),
           ':pas_morning' => json_encode($input['pasMorning']),
           ':pas_afternoon' => json_encode($input['pasAfternoon']),
           ':pain' => json_encode($input['pain']),
@@ -232,14 +234,27 @@ $shifts = fetch_dbdata('shiftTemplates',  'shift_symbol', 'ASC', $pdo, [], 'shif
 
 $nurses = fetch_dbdata('staff', 'firstname', 'ASC', $pdo, [['column' => 'role_id', 'operator' => '=', 'value' => 2]], 'id', 'firstname', 'lastname', 'email_work');
 
-var_dump($nurses);
-
 
 // TODO: Mail mit DP-Änderung auslösen
 
 
 if ($existingPlan) {
   $existingPlan['op_doctors'] = json_decode($existingPlan['op_doctors'], true);
+  $existingPlan['op_nurses'] = json_decode($existingPlan['op_nurses'], true);
+
+  // Saubere Typisierung der op_nurses-IDs für Twig-Vergleiche
+  if (isset($existingPlan['op_nurses']) && is_array($existingPlan['op_nurses'])) {
+    foreach ($existingPlan['op_nurses'] as $saal => $ids) {
+      $existingPlan['op_nurses'][$saal] = array_map('strval', $ids);
+    }
+  }
+
+  // Optional: Dasselbe für op_doctors, falls du auch da sicherstellen willst:
+  if (isset($existingPlan['op_doctors']) && is_array($existingPlan['op_doctors'])) {
+    foreach ($existingPlan['op_doctors'] as $saal => $ids) {
+      $existingPlan['op_doctors'][$saal] = array_map('strval', $ids);
+    }
+  }
 }
 
 

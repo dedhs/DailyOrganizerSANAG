@@ -73,6 +73,18 @@ document
       opDoctors[saal].push(cb.value);
     });
 
+    const opNurses = {};
+    document.querySelectorAll("select.nurses-select").forEach(select => {
+      const name = select.name;
+      const saalMatch = name.match(/^nurses_([a-z])\[\]$/);
+      if (!saalMatch) return;
+
+      const saal = saalMatch[1];
+      const selected = Array.from(select.selectedOptions).map(opt => opt.value);
+
+      opNurses[saal] = selected;
+    });
+
     const nightShiftIds = [...document.querySelectorAll(".night-shift")].map(
       el => el.dataset.id
     );
@@ -117,6 +129,7 @@ document
       pain: pain,
       opDoctors: opDoctors,
       doctorTv: doctorTv,
+      opNurses: opNurses,
       pasMorning: pasMorning,
       pasAfternoon: pasAfternoon
     };
@@ -266,12 +279,19 @@ document.querySelectorAll(".pagination-dots").forEach(dotContainer => {
     dot.addEventListener("click", () => {
       const index = +dot.dataset.index;
 
-      // Subpages aktualisieren
+      // Seitenwechsel
       document
         .querySelectorAll(`.paged-content[data-saal="${saal}"] .subpage`)
         .forEach((sp, i) => {
           sp.classList.toggle("active", i === index);
         });
+
+      // Verzögert SlimSelect anwenden
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          initVisibleNurseSelects();
+        });
+      });
     });
   });
 });
@@ -309,14 +329,70 @@ document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
 updateCheckmarks(); // Initiales Setzen der Haken
 
 // Multiple selection field for nurses
-document.addEventListener("DOMContentLoaded", () => {
+/*
+function initNurseSlimSelects() {
   document.querySelectorAll(".nurses-select").forEach(select => {
-    new SlimSelect({
+    const isVisible = select.offsetParent !== null;
+    if (!isVisible) return; // nur sichtbare Elemente
+
+    if (select.dataset.slimInitialized === "true") return;
+
+    const preselected = Array.from(select.options)
+      .filter(opt => opt.selected)
+      .map(opt => opt.value);
+
+    const slim = new SlimSelect({
       select: select,
       placeholder: "Pflegekräfte auswählen...",
       searchPlaceholder: "Suchen...",
       closeOnSelect: false,
       allowDeselect: true
     });
+
+    if (preselected.length > 0) {
+      slim.set(preselected);
+    }
+
+    select.dataset.slimInitialized = "true";
   });
+}
+*/
+
+function initVisibleNurseSelects() {
+  document.querySelectorAll("select.nurses-select").forEach(select => {
+    if (select.dataset.slimInitialized === "true") return;
+
+    // Nur initialisieren, wenn das Element sichtbar ist
+    if (select.offsetParent === null) return;
+
+    // ⛑ Sicherstellen, dass es Optionen gibt
+    if (!select.options) {
+      console.warn("Kein <select>-Element oder keine Optionen:", select);
+      return;
+    }
+
+    console.log("→ Initialisiere sichtbares Select:", select.id || "(ohne ID)");
+
+    const slimInstance = new SlimSelect({
+      select: select,
+      placeholder: "Pflegekräfte auswählen...",
+      searchPlaceholder: "Suchen...",
+      closeOnSelect: false,
+      allowDeselect: true
+    });
+
+    select.dataset.slimInitialized = "true";
+
+    const preselected = Array.from(select.options)
+      .filter(opt => opt.selected)
+      .map(opt => opt.value);
+
+    if (preselected.length > 0 && typeof slimInstance.set === "function") {
+      slimInstance.set(preselected);
+    }
+  });
+}
+
+window.addEventListener("load", () => {
+  initVisibleNurseSelects();
 });

@@ -145,119 +145,112 @@
 			</div>
 		</div>
 	</div>
-</div></section><section>
-<div class="task-section">
-	<div class="task-title">Saal A, B, C, D, E, F, G, Endo</div>
-	<div class="container-wrapper">
-		{% for saal in ['a', 'b', 'c', 'd'] %}
-			<div class="task-column">
-				<div class="task-title">Saal
-					{{ saal|upper }}</div>
-				<div class="checkbox-container">
-					{% for staff in op_staff %}
-						<label class="checkbox">
-							<input type="checkbox" class="op-checkbox" name="op_{{ saal }}[]" value="{{ staff.mitarbeiter_id }}" data-saal="{{ saal }}" {% if existingPlan and existingPlan.op_doctors is defined and staff.mitarbeiter_id in existingPlan.op_doctors[saal] %} checked {% endif %}>
-							{{ staff.name }}
-						</label>
-					{% endfor %}
-				</div>
-			</div>
-		{% endfor %}
-	</div>
-</div></section><section>
-
-<div class="task-section">
-	<div class="task-title">Saal A, B, C, D</div>
-	<div class="container-wrapper">
-		{% for saal in ['a', 'b', 'c', 'd'] %}
-			<div class="task-column">
-				<div class="task-title">Saal
-					{{ saal|upper }}</div>
-				<div class="checkbox-container">
-					<div
-						class="paged-content" data-saal="{{ saal }}">
-						{# Seite 1 – Ärzte-Auswahl #}
-						<div class="subpage active" data-subpage="0">
-							{% for staff in op_staff %}
-								<label class="checkbox">
-									<input type="checkbox" class="op-checkbox" name="op_{{ saal }}[]" value="{{ staff.mitarbeiter_id }}" data-saal="{{ saal }}" data-role="arzt" {% if existingPlan and existingPlan.op_doctors is defined and staff.mitarbeiter_id in existingPlan.op_doctors[saal] %} checked {% endif %}>
-									{{ staff.name }}
-								</label>
-							{% endfor %}
-						</div>
-
-						{# Seite 2 – Pflegekräfte-Auswahl (Platzhalter) #}
-						<div class="subpage" data-subpage="1">
-							<div class="form-group">
-								<label for="nurses">Pflege auswählen</label>
-								<select class="nurses-select" name="nurses_{{ saal }}[]" multiple>
-									{% for nurse in nurses %}
-										<option value="{{ nurse.id }}">{{ nurse.firstname }}
-											{{ nurse.lastname }}</option>
-									{% endfor %}
-								</select>
+</section>
+<section>
+	<div class="task-section">
+		<div class="task-title">Saal A, B, C, D</div>
+		<div class="container-wrapper">
+			{% for saal in ['a', 'b', 'c', 'd'] %}
+				<div class="task-column">
+					<div class="task-title">Saal
+						{{ saal|upper }}</div>
+					<div class="checkbox-container">
+						<div
+							class="paged-content" data-saal="{{ saal }}">
+							{# Seite 1 – Ärzte-Auswahl #}
+							<div class="subpage active" data-subpage="0">
+								{% for staff in op_staff %}
+									<label class="checkbox">
+										<input type="checkbox" class="op-checkbox" name="op_{{ saal }}[]" value="{{ staff.mitarbeiter_id }}" data-saal="{{ saal }}" data-role="arzt" {% if existingPlan and existingPlan.op_doctors is defined and staff.mitarbeiter_id in existingPlan.op_doctors[saal] %} checked {% endif %}>
+										{{ staff.name }}
+									</label>
+								{% endfor %}
 							</div>
-						</div>
 
-						{# Navigationspunkte für Seitenumschaltung #}
-						<div class="pagination-dots" data-saal="{{ saal }}">
-							{% for i in [0,1] %}
-								<div class="dot" data-index="{{ i }}">
-									<svg width="20" height="20">
-										<circle cx="10" cy="10" r="8" stroke="gray" stroke-width="2" fill="white"/>
-										<path d="M5 10l2 2 5-5" stroke="green" stroke-width="2" fill="none" class="checkmark hidden"/>
-									</svg>
+							{# Seite 2 – Pflegekräfte-Auswahl (Platzhalter) #}
+							<div class="subpage" data-subpage="1">
+								<div class="form-group">
+									<label for="nurses_{{ saal }}">Pflege</label>
+
+									{% set nurse_ids = existingPlan.op_nurses[saal]|default([]) %}
+
+									<select id="nurses_{{ saal }}" class="nurses-select" name="nurses_{{ saal }}[]" multiple>
+										{% for nurse in nurses %}
+											<option value="{{ nurse.id }}" {% if nurse.id in nurse_ids %} selected {% endif %}>
+												{{ nurse.firstname }}
+												{{ nurse.lastname }}
+											</option>
+										{% endfor %}
+									</select>
 								</div>
-							{% endfor %}
+							</div>
+
+
+							{# Navigationspunkte für Seitenumschaltung #}
+							<div class="pagination-dots" data-saal="{{ saal }}">
+								{% for i in [0,1] %}
+									<div class="dot" data-index="{{ i }}">
+										<svg width="20" height="20">
+											<circle cx="10" cy="10" r="8" stroke="gray" stroke-width="2" fill="white"/>
+											<path d="M5 10l2 2 5-5" stroke="green" stroke-width="2" fill="none" class="checkmark hidden"/>
+										</svg>
+									</div>
+								{% endfor %}
+							</div>
 						</div>
 					</div>
 				</div>
-			</div>
-		{% endfor %}
+			{% endfor %}
+		</div>
 	</div>
-</div></section><br><br><form action="" method="post">
-<label for="mod-date">Bitte Datum für die Dienständerung eingeben/auswählen:</label>
-<input type="text" id="mod-date" class="date-entry" name="mod-date" placeholder="Datum auswählen">
+</section><br><br><form action="" method="post">
+	<label for="mod-date">Bitte Datum für die Dienständerung eingeben/auswählen:</label>
+	<input type="text" id="mod-date" class="date-entry" name="mod-date" placeholder="Datum auswählen">
 
-<label for="employee">Mitarbeiter wählen:</label>
-<select name="employee" id="employee">
-	<option value="" selected disabled hidden>Mitarbeiter auswählen</option>
-	{% for s in employee %}
-		<option value="{{ s.id }}" data-trigram="{{ s.trigram }}">
-			{{ s.lastname }},
-			{{ s.firstname }}
-		</option>
-	{% endfor %}
-</select>
+	<label for="employee">Mitarbeiter wählen:</label>
+	<select name="employee" id="employee">
+		<option value="" selected disabled hidden>Mitarbeiter auswählen</option>
+		{% for s in employee %}
+			<option value="{{ s.id }}" data-trigram="{{ s.trigram }}">
+				{{ s.lastname }},
+				{{ s.firstname }}
+			</option>
+		{% endfor %}
+	</select>
 
-<input type="hidden" id="employee-trigram" name="employee-trigram">
+	<input type="hidden" id="employee-trigram" name="employee-trigram">
 
-<p>aktueller Dienst:
-	<span id="current-shift">{{ current_shift }}</span>
-</p>
-<p>Pikett Tag:
-	<span id="on-call-day-scheduled">{{ on_call_day_scheduled }}</span>
-</p>
-<p>Pikett Nacht:
-	<span id="on-call-night-scheduled">{{ on_call_night_scheduled }}</span>
-</p>
+	<p>aktueller Dienst:
+		<span id="current-shift">{{ current_shift }}</span>
+	</p>
+	<p>Pikett Tag:
+		<span id="on-call-day-scheduled">{{ on_call_day_scheduled }}</span>
+	</p>
+	<p>Pikett Nacht:
+		<span id="on-call-night-scheduled">{{ on_call_night_scheduled }}</span>
+	</p>
 
-<label for="new-shift">Zu besetzenden Dienst wählen:</label>
-<select name="new-shift" id="new-shift">
-	<option value="" selected disabled hidden>Dienst auswählen</option>
-	{% for s in shifts %}
-		<option value="{{ s.shift_symbol }}">{{ s.shift_symbol }}</option>
-	{% endfor %}
-</select>
+	<label for="new-shift">Zu besetzenden Dienst wählen:</label>
+	<select name="new-shift" id="new-shift">
+		<option value="" selected disabled hidden>Dienst auswählen</option>
+		{% for s in shifts %}
+			<option value="{{ s.shift_symbol }}">{{ s.shift_symbol }}</option>
+		{% endfor %}
+	</select>
 
-<form id="new-on-call">
-	<label><input type="checkbox" name="new-on-call" value="new-on-call-day">Pikett Tag</label>
-	<label><input type="checkbox" name="new-on-call" value="new-on-call-night">Pikett Nacht</label>
+	<form id="new-on-call">
+		<label><input type="checkbox" name="new-on-call" value="new-on-call-day">Pikett Tag</label>
+		<label><input type="checkbox" name="new-on-call" value="new-on-call-night">Pikett Nacht</label>
+	</form>
+
+	<button id="change-shift" type="submit">Absenden</button>
 </form>
+<form>
+	<button type="submit" name="save-changes">Änderungen speichern</button>
+</form>
+<form method="post" action="/Einteilungstool/pdf/schedule.pdf.php" target="_blank">
 
-<button id="change-shift" type="submit">Absenden</button></form><form>
-<button type="submit" name="save-changes">Änderungen speichern</button></form><form method="post" action="/Einteilungstool/pdf/schedule.pdf.php" target="_blank">
+	<input type="hidden" name="plan-date" value="{{ planDate|date("Y-m-d") }}">
 
-<input type="hidden" name="plan-date" value="{{ planDate|date("Y-m-d") }}">
-
-<button type="submit">PDF erzeugen</button></form>{% endblock %}
+	<button type="submit">PDF erzeugen</button>
+</form>{% endblock %}
