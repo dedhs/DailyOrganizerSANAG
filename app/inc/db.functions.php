@@ -6,7 +6,7 @@ require_once APP_PATH . 'app/app.php';
 // TODO: Man könnte bei den Diensten ebenfalls über die Dienst-Id gehen und diesen die Symbole/Bezeichnungen aus get_dienstvorlagen zuweisen. Normalisierung in diesem Ausmass sinnvoll?
 function match_dienste_mitarbeiter($date, $roster, $staff, $pdo)
 {
-  $sql_staff = "SELECT id, lastname, firstname FROM staff WHERE status = 1";
+  $sql_staff = "SELECT id, lastname, firstname FROM staffPlanik WHERE status = 1";
   $stmt_staff = $pdo->prepare($sql_staff);
   $stmt_staff->execute();
   $staff = $stmt_staff->fetchAll(PDO::FETCH_ASSOC);
@@ -83,7 +83,7 @@ function change_shift($date, $current_shift, $new_shift, $current_on_call, $new_
   $new_on_call_night = in_array('new-on-call-night', $new_on_call);
 
   try {
-    $fk_staffId = fetch_dbdata('staff', 'lastname', 'ASC', $pdo, [
+    $fk_staffId = fetch_dbdata('staffPlanik', 'lastname', 'ASC', $pdo, [
       ['column' => 'trigram', 'operator' => '=', 'value' => $name]
     ], 'id');
 

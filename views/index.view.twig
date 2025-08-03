@@ -164,6 +164,57 @@
 			</div>
 		{% endfor %}
 	</div>
+</div></section><section>
+
+<div class="task-section">
+	<div class="task-title">Saal A, B, C, D</div>
+	<div class="container-wrapper">
+		{% for saal in ['a', 'b', 'c', 'd'] %}
+			<div class="task-column">
+				<div class="task-title">Saal
+					{{ saal|upper }}</div>
+				<div class="checkbox-container">
+					<div
+						class="paged-content" data-saal="{{ saal }}">
+						{# Seite 1 – Ärzte-Auswahl #}
+						<div class="subpage active" data-subpage="0">
+							{% for staff in op_staff %}
+								<label class="checkbox">
+									<input type="checkbox" class="op-checkbox" name="op_{{ saal }}[]" value="{{ staff.mitarbeiter_id }}" data-saal="{{ saal }}" data-role="arzt" {% if existingPlan and existingPlan.op_doctors is defined and staff.mitarbeiter_id in existingPlan.op_doctors[saal] %} checked {% endif %}>
+									{{ staff.name }}
+								</label>
+							{% endfor %}
+						</div>
+
+						{# Seite 2 – Pflegekräfte-Auswahl (Platzhalter) #}
+						<div class="subpage" data-subpage="1">
+							<div class="form-group">
+								<label for="nurses">Pflege auswählen</label>
+								<select class="nurses-select" name="nurses_{{ saal }}[]" multiple>
+									{% for nurse in nurses %}
+										<option value="{{ nurse.id }}">{{ nurse.firstname }}
+											{{ nurse.lastname }}</option>
+									{% endfor %}
+								</select>
+							</div>
+						</div>
+
+						{# Navigationspunkte für Seitenumschaltung #}
+						<div class="pagination-dots" data-saal="{{ saal }}">
+							{% for i in [0,1] %}
+								<div class="dot" data-index="{{ i }}">
+									<svg width="20" height="20">
+										<circle cx="10" cy="10" r="8" stroke="gray" stroke-width="2" fill="white"/>
+										<path d="M5 10l2 2 5-5" stroke="green" stroke-width="2" fill="none" class="checkmark hidden"/>
+									</svg>
+								</div>
+							{% endfor %}
+						</div>
+					</div>
+				</div>
+			</div>
+		{% endfor %}
+	</div>
 </div></section><br><br><form action="" method="post">
 <label for="mod-date">Bitte Datum für die Dienständerung eingeben/auswählen:</label>
 <input type="text" id="mod-date" class="date-entry" name="mod-date" placeholder="Datum auswählen">

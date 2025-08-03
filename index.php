@@ -226,9 +226,13 @@ $on_call_day = array_filter($roster_table, function ($e) {
 
 get_dienstvorlagen($login_data['access-token'], $login_data['uid'], $login_data['client'], $pdo);
 
-$employee = fetch_dbdata('staff',  'lastname', 'ASC', $pdo, [], 'lastname', 'firstname', 'trigram', 'id');
+$employee = fetch_dbdata('staffPlanik',  'lastname', 'ASC', $pdo, [], 'lastname', 'firstname', 'trigram', 'id');
 
 $shifts = fetch_dbdata('shiftTemplates',  'shift_symbol', 'ASC', $pdo, [], 'shift_id', 'shift_symbol');
+
+$nurses = fetch_dbdata('staff', 'firstname', 'ASC', $pdo, [['column' => 'role_id', 'operator' => '=', 'value' => 2]], 'id', 'firstname', 'lastname', 'email_work');
+
+var_dump($nurses);
 
 
 // TODO: Mail mit DP-Änderung auslösen
@@ -255,6 +259,7 @@ $view_data = [
   'on_call_day_scheduled' => '',
   'on_call_night_scheduled' => '',
   'shifts' => $shifts,
+  'nurses' => $nurses,
   'existingPlan' => $existingPlan
 ];
 

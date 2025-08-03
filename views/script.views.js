@@ -255,3 +255,68 @@ changeShift.addEventListener("click", function() {
       console.error("Fetch-Error:", err);
     });
 });
+
+// BAUSTELLE PAGINATION AB HIER
+
+document.querySelectorAll(".pagination-dots").forEach(dotContainer => {
+  const saal = dotContainer.dataset.saal;
+  const dots = dotContainer.querySelectorAll(".dot");
+
+  dots.forEach(dot => {
+    dot.addEventListener("click", () => {
+      const index = +dot.dataset.index;
+
+      // Subpages aktualisieren
+      document
+        .querySelectorAll(`.paged-content[data-saal="${saal}"] .subpage`)
+        .forEach((sp, i) => {
+          sp.classList.toggle("active", i === index);
+        });
+    });
+  });
+});
+
+// Status der Checkboxen auslesen und Punkte aktualisieren
+function updateCheckmarks() {
+  document.querySelectorAll(".paged-content").forEach(container => {
+    const saal = container.dataset.saal;
+    const subpages = container.querySelectorAll(".subpage");
+    const dots = document.querySelectorAll(
+      `.pagination-dots[data-saal="${saal}"] .dot`
+    );
+
+    subpages.forEach((subpage, i) => {
+      const checkboxes = subpage.querySelectorAll('input[type="checkbox"]');
+      const anyChecked = [...checkboxes].some(cb => cb.checked);
+      const checkmark = dots[i].querySelector(".checkmark");
+
+      if (anyChecked) {
+        checkmark.classList.remove("hidden");
+        requestAnimationFrame(() => checkmark.classList.add("visible"));
+      } else {
+        checkmark.classList.remove("visible");
+        checkmark.classList.add("hidden");
+      }
+    });
+  });
+}
+
+// Bei Änderung der Checkboxen aktualisieren
+document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+  cb.addEventListener("change", updateCheckmarks);
+});
+
+updateCheckmarks(); // Initiales Setzen der Haken
+
+// Multiple selection field for nurses
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".nurses-select").forEach(select => {
+    new SlimSelect({
+      select: select,
+      placeholder: "Pflegekräfte auswählen...",
+      searchPlaceholder: "Suchen...",
+      closeOnSelect: false,
+      allowDeselect: true
+    });
+  });
+});

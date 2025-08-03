@@ -109,7 +109,7 @@ function get_mitarbeiter($date, $token, $uid, $client, $pdo)
     $api_ids[] = $id;
 
     $stmt = $pdo->prepare("
-            INSERT INTO staff (id, lastname, firstname, trigram, status, created, last_modified)
+            INSERT INTO staffPlanik (id, lastname, firstname, trigram, status, created, last_modified)
             VALUES (:id, :lastname, :firstname, :trigram, true, now(), now())
             ON DUPLICATE KEY UPDATE
               lastname = VALUES(lastname),
@@ -130,7 +130,7 @@ function get_mitarbeiter($date, $token, $uid, $client, $pdo)
   if (count($api_ids) > 0) {
     $in = implode(',', array_fill(0, count($api_ids), '?'));
     $stmt = $pdo->prepare("
-            UPDATE staff
+            UPDATE staffPlanik
             SET status = false, last_modified = now()
             WHERE id NOT IN ($in)
         ");

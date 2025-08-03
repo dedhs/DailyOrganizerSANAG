@@ -41,3 +41,47 @@ body {
 .checkbox-container input[type="radio"] {
   margin-right: 6px;
 }
+
+.subpage {
+  display: none;
+}
+.subpage.active {
+  display: block;
+}
+
+.paged-content {
+  position: relative;
+  min-height: 120px;
+  padding-bottom: 10px;
+}
+
+.pagination-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.dot {
+  cursor: pointer;
+  position: relative;
+  width: 20px;
+  height: 20px;
+}
+
+.checkmark {
+  stroke-dasharray: 15;
+  stroke-dashoffset: 15;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.checkmark.visible {
+  stroke-dashoffset: 0;
+}
+
+.hidden {
+  display: none;
+}
+.visible {
+  display: block;
+}
